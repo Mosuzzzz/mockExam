@@ -46,18 +46,6 @@ const completedAttempt = {
 
 test("result page copies and downloads missed-question JSON and fits mobile", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.route(/\/node_modules\/\.vite\/deps\/@clerk_react\.js/, (route) => route.fulfill({
-    status: 200,
-    contentType: "application/javascript",
-    body: `
-      const getToken = async () => null;
-      export const ClerkProvider = ({ children }) => children;
-      export const useAuth = () => ({ isLoaded: true, isSignedIn: true, getToken });
-      export const useUser = () => ({ user: { firstName: "Practice student" } });
-      export const UserButton = () => null;
-      export const SignIn = () => null;
-    `,
-  }));
   await page.route("**/api/attempts/e2e-attempt", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",

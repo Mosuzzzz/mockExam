@@ -9,7 +9,6 @@ import { assertDatabaseConfigured } from "./db/client";
 
 type LegacyTestRow = {
   id: string;
-  clerk_user_id: string;
   title: string;
   description: string | null;
   duration_minutes: number;
@@ -21,7 +20,6 @@ type LegacyTestRow = {
 
 type LegacyAttemptRow = {
   id: string;
-  clerk_user_id: string;
   mock_test_id: string;
   status: "in_progress" | "completed";
   answers_json: string;
@@ -58,7 +56,7 @@ if (!existsSync(sqlitePath)) {
 }
 
 const source = new Database(sqlitePath, { readonly: true });
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL?.trim() });
 
 try {
   const tests = source.query("SELECT * FROM mock_tests ORDER BY created_at, id").all() as LegacyTestRow[];
@@ -88,19 +86,19 @@ try {
     for (const { row, testJson } of validatedTests) {
       await client.query(
         `INSERT INTO mock_tests
-         (id, clerk_user_id, title, description, duration_minutes, question_count, test_json, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
-        [row.id, row.clerk_user_id, row.title, row.description, row.duration_minutes, row.question_count, JSON.stringify(testJson), asDate(row.created_at, `test ${row.id}`), asDate(row.updated_at, `test ${row.id}`)],
+         (id, title, description, duration_minutes, question_count, test_json, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)`,
+        [row.id, row.title, row.description, row.duration_minutes, row.question_count, JSON.stringify(testJson), asDate(row.created_at, `test ${row.id}`), asDate(row.updated_at, `test ${row.id}`)],
       );
     }
 
     for (const { row, answersJson } of validatedAttempts) {
       await client.query(
         `INSERT INTO attempts
-         (id, clerk_user_id, mock_test_id, status, answers_json, answer_revision, score, total_questions,
+         (id, mock_test_id, status, answers_json, answer_revision, score, total_questions,
           percentage, completion_reason, started_at, expires_at, completed_at)
-         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13)`,
-        [row.id, row.clerk_user_id, row.mock_test_id, row.status, JSON.stringify(answersJson), row.answer_revision, row.score, row.total_questions, row.percentage, row.completion_reason, asDate(row.started_at, `attempt ${row.id}`), asDate(row.expires_at, `attempt ${row.id}`), row.completed_at === null ? null : asDate(row.completed_at, `attempt ${row.id}`)],
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [row.id, row.mock_test_id, row.status, JSON.stringify(answersJson), row.answer_revision, row.score, row.total_questions, row.percentage, row.completion_reason, asDate(row.started_at, `attempt ${row.id}`), asDate(row.expires_at, `attempt ${row.id}`), row.completed_at === null ? null : asDate(row.completed_at, `attempt ${row.id}`)],
       );
     }
 

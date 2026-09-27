@@ -15,7 +15,6 @@ type AttemptRow = typeof attempts.$inferSelect;
 type TestRow = typeof mockTests.$inferSelect;
 type RawAttempt = {
   id: string;
-  clerk_user_id: string;
   mock_test_id: string;
   status: "in_progress" | "completed";
   answers_json: unknown;
@@ -64,7 +63,6 @@ export function scoreTest(test: MockTest, answers: AnswerMap) {
 function toRawAttempt(row: AttemptRow): RawAttempt {
   return {
     id: row.id,
-    clerk_user_id: row.clerkUserId,
     mock_test_id: row.mockTestId,
     status: row.status,
     answers_json: row.answersJson,
@@ -81,21 +79,20 @@ function toRawAttempt(row: AttemptRow): RawAttempt {
 
 async function gradeAndFinalizeWithClient(
   client: PoolClient,
-  userId: string,
   attemptId: string,
   reason: "manual" | "timeout",
 ): Promise<RawAttempt> {
   const attemptResult = await client.query<RawAttempt>(
-    "SELECT * FROM attempts WHERE id = $1 AND clerk_user_id = $2 FOR UPDATE",
-    [attemptId, userId],
+    "SELECT * FROM attempts WHERE id = $1 FOR UPDATE",
+    [attemptId],
   );
   const row = attemptResult.rows[0];
   if (!row) throw notFound();
   if (row.status === "completed") return row;
 
   const testResult = await client.query<{ test_json: unknown }>(
-    "SELECT test_json FROM mock_tests WHERE id = $1 AND clerk_user_id = $2",
-    [row.mock_test_id, userId],
+    "SELECT test_json FROM mock_tests WHERE id = $1",
+    [row.mock_test_id],
   );
   const testRow = testResult.rows[0];
   if (!testRow) throw notFound();
@@ -109,9 +106,9 @@ async function gradeAndFinalizeWithClient(
     `UPDATE attempts
      SET status = 'completed', score = $1, total_questions = $2, percentage = $3,
          completion_reason = $4, completed_at = $5
-     WHERE id = $6 AND clerk_user_id = $7 AND status = 'in_progress'
+     WHERE id = $6 AND status = 'in_progress'
      RETURNING *`,
-    [result.score, result.total, result.percentage, actualReason, completedAt, attemptId, userId],
+    [result.score, result.total, result.percentage, actualReason, completedAt, attemptId],
   );
   const updated = updatedResult.rows[0];
   if (!updated) {
@@ -120,11 +117,11 @@ async function gradeAndFinalizeWithClient(
   return updated;
 }
 
-async function gradeAndFinalize(userId: string, attemptId: string, reason: "manual" | "timeout") {
+async function gradeAndFinalize(attemptId: string, reason: "manual" | "timeout") {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const row = await gradeAndFinalizeWithClient(client, userId, attemptId, reason);
+    const row = await gradeAndFinalizeWithClient(client, attemptId, reason);
     await client.query("COMMIT");
     return row;
   } catch (error) {
@@ -160,30 +157,30 @@ function rawToView(row: RawAttempt, testRow: TestRow, serverNow = Date.now()) {
   };
 }
 
-async function getTestRow(userId: string, testId: string) {
+async function getTestRow(testId: string) {
   const [row] = await db
     .select()
     .from(mockTests)
-    .where(and(eq(mockTests.id, testId), eq(mockTests.clerkUserId, userId)))
+    .where(eq(mockTests.id, testId))
     .limit(1);
   if (!row) throw notFound();
   return row;
 }
 
-async function getAttemptRow(userId: string, attemptId: string) {
+async function getAttemptRow(attemptId: string) {
   const [row] = await db
     .select()
     .from(attempts)
-    .where(and(eq(attempts.id, attemptId), eq(attempts.clerkUserId, userId)))
+    .where(eq(attempts.id, attemptId))
     .limit(1);
   if (!row) throw notFound();
   return row;
 }
 
-export async function listTests(userId: string) {
+export async function listTests() {
   const [tests, history] = await Promise.all([
-    db.select().from(mockTests).where(eq(mockTests.clerkUserId, userId)).orderBy(desc(mockTests.updatedAt)),
-    db.select().from(attempts).where(eq(attempts.clerkUserId, userId)).orderBy(desc(attempts.completedAt)),
+    db.select().from(mockTests).orderBy(desc(mockTests.updatedAt)),
+    db.select().from(attempts).orderBy(desc(attempts.completedAt)),
   ]);
   const latest = new Map<string, AttemptRow>();
   for (const attempt of history) {
@@ -207,7 +204,7 @@ export async function listTests(userId: string) {
   });
 }
 
-export async function createTest(userId: string, input: unknown) {
+export async function createTest(input: unknown) {
   const parsed = mockTestSchema.safeParse(input);
   if (!parsed.success) {
     throw new ApiError(422, "VALIDATION_ERROR", "Fix the marked fields, then try saving again.", formatValidationIssues(parsed.error.issues));
@@ -217,7 +214,6 @@ export async function createTest(userId: string, input: unknown) {
   const id = crypto.randomUUID();
   await db.insert(mockTests).values({
     id,
-    clerkUserId: userId,
     title: test.title,
     description: test.description ?? null,
     durationMinutes: test.duration_minutes,
@@ -229,8 +225,8 @@ export async function createTest(userId: string, input: unknown) {
   return { id, title: test.title, durationMinutes: test.duration_minutes, questionCount: test.questions.length };
 }
 
-export async function readTest(userId: string, testId: string) {
-  const row = await getTestRow(userId, testId);
+export async function readTest(testId: string) {
+  const row = await getTestRow(testId);
   return {
     id: row.id,
     title: row.title,
@@ -243,29 +239,29 @@ export async function readTest(userId: string, testId: string) {
   };
 }
 
-export async function deleteTest(userId: string, testId: string) {
+export async function deleteTest(testId: string) {
   const deleted = await db
     .delete(mockTests)
-    .where(and(eq(mockTests.id, testId), eq(mockTests.clerkUserId, userId)))
+    .where(eq(mockTests.id, testId))
     .returning({ id: mockTests.id });
   if (!deleted.length) throw notFound();
   return { deleted: true };
 }
 
-async function startOrResume(userId: string, testId: string): Promise<RawAttempt> {
+async function startOrResume(testId: string): Promise<RawAttempt> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const testResult = await client.query<{ test_json: unknown; duration_minutes: number; question_count: number }>(
-      "SELECT test_json, duration_minutes, question_count FROM mock_tests WHERE id = $1 AND clerk_user_id = $2 FOR KEY SHARE",
-      [testId, userId],
+      "SELECT test_json, duration_minutes, question_count FROM mock_tests WHERE id = $1 FOR KEY SHARE",
+      [testId],
     );
     const testRow = testResult.rows[0];
     if (!testRow) throw notFound();
 
     const activeResult = await client.query<RawAttempt>(
-      "SELECT * FROM attempts WHERE mock_test_id = $1 AND clerk_user_id = $2 AND status = 'in_progress' LIMIT 1 FOR UPDATE",
-      [testId, userId],
+      "SELECT * FROM attempts WHERE mock_test_id = $1 AND status = 'in_progress' LIMIT 1 FOR UPDATE",
+      [testId],
     );
     const active = activeResult.rows[0];
     const now = new Date();
@@ -273,7 +269,7 @@ async function startOrResume(userId: string, testId: string): Promise<RawAttempt
       await client.query("COMMIT");
       return active;
     }
-    if (active) await gradeAndFinalizeWithClient(client, userId, active.id, "timeout");
+    if (active) await gradeAndFinalizeWithClient(client, active.id, "timeout");
 
     const test = parseTest(testRow.test_json);
     const startedAt = new Date();
@@ -281,10 +277,10 @@ async function startOrResume(userId: string, testId: string): Promise<RawAttempt
     const attemptId = crypto.randomUUID();
     const inserted = await client.query<RawAttempt>(
       `INSERT INTO attempts
-       (id, clerk_user_id, mock_test_id, status, answers_json, answer_revision, total_questions, started_at, expires_at)
-       VALUES ($1, $2, $3, 'in_progress', '{}'::jsonb, 0, $4, $5, $6)
+       (id, mock_test_id, status, answers_json, answer_revision, total_questions, started_at, expires_at)
+       VALUES ($1, $2, 'in_progress', '{}'::jsonb, 0, $3, $4, $5)
        RETURNING *`,
-      [attemptId, userId, testId, test.questions.length, startedAt, expiresAt],
+      [attemptId, testId, test.questions.length, startedAt, expiresAt],
     );
     const row = inserted.rows[0];
     if (!row) throw new Error("PostgreSQL did not return the created attempt.");
@@ -301,40 +297,40 @@ async function startOrResume(userId: string, testId: string): Promise<RawAttempt
 function isActiveAttemptConflict(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const pgError = error as { code?: string; constraint?: string };
-  return pgError.code === "23505" && pgError.constraint === "attempts_one_active_per_user_test";
+  return pgError.code === "23505" && pgError.constraint === "attempts_one_active_per_test";
 }
 
-export async function startAttempt(userId: string, testId: string) {
+export async function startAttempt(testId: string) {
   let attempt: RawAttempt;
   try {
-    attempt = await startOrResume(userId, testId);
+    attempt = await startOrResume(testId);
   } catch (error) {
     if (!isActiveAttemptConflict(error)) throw error;
     const [existing] = await db
       .select()
       .from(attempts)
-      .where(and(eq(attempts.mockTestId, testId), eq(attempts.clerkUserId, userId), eq(attempts.status, "in_progress")))
+      .where(and(eq(attempts.mockTestId, testId), eq(attempts.status, "in_progress")))
       .limit(1);
     if (!existing) throw error;
     attempt = toRawAttempt(existing);
   }
-  const row = await getTestRow(userId, testId);
+  const row = await getTestRow(testId);
   if (attempt.status === "in_progress" && attempt.expires_at <= new Date()) {
-    attempt = await gradeAndFinalize(userId, attempt.id, "timeout");
+    attempt = await gradeAndFinalize(attempt.id, "timeout");
   }
   return rawToView(attempt, row);
 }
 
-export async function readAttempt(userId: string, attemptId: string) {
-  let attempt = toRawAttempt(await getAttemptRow(userId, attemptId));
+export async function readAttempt(attemptId: string) {
+  let attempt = toRawAttempt(await getAttemptRow(attemptId));
   if (attempt.status === "in_progress" && attempt.expires_at <= new Date()) {
-    attempt = await gradeAndFinalize(userId, attemptId, "timeout");
+    attempt = await gradeAndFinalize(attemptId, "timeout");
   }
-  const test = await getTestRow(userId, attempt.mock_test_id);
+  const test = await getTestRow(attempt.mock_test_id);
   return rawToView(attempt, test);
 }
 
-export async function saveAnswers(userId: string, attemptId: string, input: unknown) {
+export async function saveAnswers(attemptId: string, input: unknown) {
   const body = input as { answers?: unknown; revision?: unknown } | null;
   const parsed = answerMapSchema.safeParse(body?.answers);
   if (!parsed.success || !Number.isInteger(body?.revision) || Number(body?.revision) < 0) {
@@ -345,14 +341,14 @@ export async function saveAnswers(userId: string, attemptId: string, input: unkn
       parsed.success ? undefined : formatValidationIssues(parsed.error.issues),
     );
   }
-  const row = await getAttemptRow(userId, attemptId);
-  if (row.status === "completed") return rawToView(toRawAttempt(row), await getTestRow(userId, row.mockTestId));
+  const row = await getAttemptRow(attemptId);
+  if (row.status === "completed") return rawToView(toRawAttempt(row), await getTestRow(row.mockTestId));
   if (row.expiresAt <= new Date()) {
-    const complete = await gradeAndFinalize(userId, attemptId, "timeout");
-    return rawToView(complete, await getTestRow(userId, row.mockTestId));
+    const complete = await gradeAndFinalize(attemptId, "timeout");
+    return rawToView(complete, await getTestRow(row.mockTestId));
   }
 
-  const test = parseTest((await getTestRow(userId, row.mockTestId)).testJson);
+  const test = parseTest((await getTestRow(row.mockTestId)).testJson);
   scoreTest(test, parsed.data);
   const expectedRevision = Number(body?.revision);
   const changed = await db
@@ -360,31 +356,30 @@ export async function saveAnswers(userId: string, attemptId: string, input: unkn
     .set({ answersJson: parsed.data, answerRevision: sql`${attempts.answerRevision} + 1` })
     .where(and(
       eq(attempts.id, attemptId),
-      eq(attempts.clerkUserId, userId),
       eq(attempts.status, "in_progress"),
       gt(attempts.expiresAt, new Date()),
       eq(attempts.answerRevision, expectedRevision),
     ))
     .returning({ id: attempts.id });
   if (!changed.length) {
-    const latest = await getAttemptRow(userId, attemptId);
-    if (latest.status === "completed") return rawToView(toRawAttempt(latest), await getTestRow(userId, latest.mockTestId));
+    const latest = await getAttemptRow(attemptId);
+    if (latest.status === "completed") return rawToView(toRawAttempt(latest), await getTestRow(latest.mockTestId));
     throw new ApiError(409, "ANSWER_CONFLICT", "This attempt changed in another tab. Reload to use the latest saved answers.");
   }
-  return readAttempt(userId, attemptId);
+  return readAttempt(attemptId);
 }
 
-export async function submitAttempt(userId: string, attemptId: string) {
-  const current = await getAttemptRow(userId, attemptId);
+export async function submitAttempt(attemptId: string) {
+  const current = await getAttemptRow(attemptId);
   const attempt =
     current.status === "completed"
       ? toRawAttempt(current)
-      : await gradeAndFinalize(userId, attemptId, current.expiresAt <= new Date() ? "timeout" : "manual");
-  const test = await getTestRow(userId, attempt.mock_test_id);
+      : await gradeAndFinalize(attemptId, current.expiresAt <= new Date() ? "timeout" : "manual");
+  const test = await getTestRow(attempt.mock_test_id);
   return rawToView(attempt, test);
 }
 
-export async function listHistory(userId: string) {
+export async function listHistory() {
   const rows = await db
     .select({
       attempt: attempts,
@@ -392,7 +387,7 @@ export async function listHistory(userId: string) {
     })
     .from(attempts)
     .innerJoin(mockTests, eq(attempts.mockTestId, mockTests.id))
-    .where(and(eq(attempts.clerkUserId, userId), eq(attempts.status, "completed")))
+    .where(eq(attempts.status, "completed"))
     .orderBy(desc(attempts.completedAt));
   return rows.map(({ attempt, testTitle }) => ({
     id: attempt.id,

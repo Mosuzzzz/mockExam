@@ -1,5 +1,4 @@
-import { UserButton, useUser } from "@clerk/react";
-import { ChevronRight, ClipboardPlus, History, LayoutDashboard } from "lucide-react";
+import { ChevronRight, ClipboardPlus, History, Laptop, LayoutDashboard } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 const navigation = [
@@ -16,9 +15,7 @@ const pageTitles: Record<string, string> = {
 
 export function WorkspaceLayout() {
   const location = useLocation();
-  const { user } = useUser();
   const pageTitle = location.pathname.startsWith("/result/") ? "Result review" : pageTitles[location.pathname] ?? "MockTest";
-  const displayName = user?.firstName ?? "Student";
 
   return (
     <div className="workspace-shell">
@@ -38,8 +35,8 @@ export function WorkspaceLayout() {
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-account">
-            <UserButton />
-            <div className="account-label"><span className="account-name">{displayName}</span><span className="account-subtitle">Your account</span></div>
+            <span className="local-account-icon"><Laptop size={16} aria-hidden="true" /></span>
+            <div className="account-label"><span className="account-name">Local workspace</span><span className="account-subtitle">Saved in PostgreSQL</span></div>
           </div>
           <p className="sidebar-note">A clear space to practice.</p>
         </div>
@@ -49,7 +46,7 @@ export function WorkspaceLayout() {
         <header className="workspace-topbar">
           <div className="mobile-brand"><img className="brand-logo" src="/mocktest.png" alt="MockTest" /></div>
           <span className="topbar-title">{pageTitle}</span>
-          <div className="topbar-user"><span>{displayName}</span><UserButton /></div>
+          <div className="topbar-user"><Laptop size={15} aria-hidden="true" /><span>Local workspace</span></div>
         </header>
         <main className="workspace-content"><Outlet /></main>
       </div>

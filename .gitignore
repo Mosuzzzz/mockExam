@@ -15,4 +15,3 @@ test-results/
 .env.*
 !.env.example
 .DS_Store
-.vercel

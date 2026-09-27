@@ -1,21 +1,12 @@
-import { useAuth } from "@clerk/react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { LoadingState } from "./components/Feedback";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ExamPage } from "./pages/ExamPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { ImportPage } from "./pages/ImportPage";
-import { LandingPage } from "./pages/LandingPage";
 import { ResultPage } from "./pages/ResultPage";
 
-function RouteGate() {
-  const { isLoaded, isSignedIn } = useAuth();
-  if (!isLoaded) {
-    return <main className="auth-loading"><LoadingState label="Opening your workspace" /></main>;
-  }
-  if (!isSignedIn) return <LandingPage />;
-
+function AppRoutes() {
   return (
     <Routes>
       <Route path="/exam/:attemptId" element={<ExamPage />} />
@@ -32,5 +23,5 @@ function RouteGate() {
 }
 
 export function App() {
-  return <BrowserRouter><RouteGate /></BrowserRouter>;
+  return <BrowserRouter><AppRoutes /></BrowserRouter>;
 }

@@ -1,5 +1,3 @@
-export type GetToken = () => Promise<string | null>;
-
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -14,15 +12,12 @@ export class ApiClientError extends Error {
 
 export async function apiRequest<T>(
   path: string,
-  getToken: GetToken,
   options: { method?: string; body?: unknown; signal?: AbortSignal } = {},
 ): Promise<T> {
-  const token = await getToken();
   const headers = new Headers({ Accept: "application/json" });
-  if (token) headers.set("Authorization", `Bearer ${token}`);
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
 
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? ""}${path}`, {
+  const response = await fetch(path, {
     method: options.method ?? "GET",
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),

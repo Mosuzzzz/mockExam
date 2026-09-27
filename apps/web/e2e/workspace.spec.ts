@@ -4,30 +4,26 @@ import { resolve } from "node:path";
 
 const reviewDir = resolve(process.cwd(), ".impeccable/review");
 
-async function openLanding(page: import("@playwright/test").Page) {
+async function openWorkspace(page: import("@playwright/test").Page) {
+  await page.route("**/api/tests", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/history", (route) => route.fulfill({ json: [] }));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Bring your questions/ })).toBeVisible();
-  await expect(page.locator(".landing-sign-in")).toHaveAttribute("href", "#sign-in");
-  await expect(page.getByText("Sign in to save tests, track attempts, and return whenever you’re ready.")).toBeVisible();
-  await expect(page.getByText("SAMPLE EXAM · DATABASE MIDTERM")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Google/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
-  await expect(page.getByText("Sign up", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your practice workspace" })).toBeVisible();
+  await expect(page.getByText("Your first test is one import away.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Import your first test" })).toBeVisible();
   await page.evaluate(() => document.fonts.ready.then(() => true));
 }
 
-test("signed-out landing page presents the exam flow and authentication choices", async ({ page }) => {
+test("local workspace shows the empty state and import action", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await openLanding(page);
+  await openWorkspace(page);
   await mkdir(reviewDir, { recursive: true });
   await page.screenshot({ path: resolve(reviewDir, "desktop.png"), fullPage: true, animations: "disabled" });
-  await page.locator(".landing-sign-in").click();
-  await expect(page).toHaveURL(/#sign-in$/);
 });
 
-test("signed-out landing page fits a mobile viewport", async ({ page }) => {
+test("local workspace fits a mobile viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await openLanding(page);
+  await openWorkspace(page);
   const dimensions = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
     viewportWidth: document.documentElement.clientWidth,
@@ -42,5 +38,5 @@ test("signed-out landing page fits a mobile viewport", async ({ page }) => {
     viewportWidth: document.documentElement.clientWidth,
   }));
   expect(minimumWidth.documentWidth).toBeLessThanOrEqual(minimumWidth.viewportWidth);
-  await expect(page.locator(".landing-sign-in")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Import your first test" })).toBeVisible();
 });

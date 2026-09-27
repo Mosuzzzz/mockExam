@@ -12,8 +12,6 @@
     "db:import-sqlite": "bun src/import-sqlite.ts"
   },
   "dependencies": {
-    "@clerk/backend": "*",
-    "@elysia/static": "*",
     "@mocktest/shared": "workspace:*",
     "dotenv": "*",
     "drizzle-orm": "*",

@@ -14,7 +14,6 @@ export const mockTests = pgTable(
   "mock_tests",
   {
     id: text("id").primaryKey(),
-    clerkUserId: text("clerk_user_id").notNull(),
     title: text("title").notNull(),
     description: text("description"),
     durationMinutes: integer("duration_minutes").notNull(),
@@ -23,14 +22,13 @@ export const mockTests = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
   },
-  (table) => [index("mock_tests_owner_created").on(table.clerkUserId, table.createdAt)],
+  (table) => [index("mock_tests_updated").on(table.updatedAt)],
 );
 
 export const attempts = pgTable(
   "attempts",
   {
     id: text("id").primaryKey(),
-    clerkUserId: text("clerk_user_id").notNull(),
     mockTestId: text("mock_test_id")
       .notNull()
       .references(() => mockTests.id, { onDelete: "cascade" }),
@@ -46,10 +44,10 @@ export const attempts = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
   },
   (table) => [
-    index("attempts_owner_completed").on(table.clerkUserId, table.completedAt),
+    index("attempts_completed").on(table.completedAt),
     index("attempts_test").on(table.mockTestId),
-    uniqueIndex("attempts_one_active_per_user_test")
-      .on(table.clerkUserId, table.mockTestId)
+    uniqueIndex("attempts_one_active_per_test")
+      .on(table.mockTestId)
       .where(sql`${table.status} = 'in_progress'`),
   ],
 );

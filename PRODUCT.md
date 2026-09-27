@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-delegated: Bun, React + Vite + TypeScript, ElysiaJS, Clerk, Zod, Drizzle ORM, PostgreSQL in Docker for local development, Tailwind CSS, with selective shadcn/ui as specified by the project SRS.
+delegated: Bun, React + Vite + TypeScript, ElysiaJS, Zod, Drizzle ORM, PostgreSQL in Docker Compose for local development, and Tailwind CSS.
 
 ## Users
 
@@ -28,17 +28,17 @@ Students generate MockTest JSON v1 outside the app, then paste it or upload a `.
 
 ## Capabilities and Constraints
 
-- Google and GitHub OAuth through Clerk only; no local password login.
+- One local workspace with no accounts or sign-in.
 - Import, validate, save, take, score, review, retake, and delete multiple-choice tests.
 - Each question has exactly four options; tests have 1–100 questions and duration from 1–180 minutes.
-- The server owns scoring and every test and attempt query is scoped to the authenticated Clerk user.
+- The server owns scoring and tests and attempts are stored in the local PostgreSQL database.
 - Keep tests and answer sets primarily as JSON in PostgreSQL. Run PostgreSQL in Docker for local development; no separate AI service, queue, or microservice in the MVP.
 - After submission, mark every question's result and let students copy or download incorrect and unanswered items as JSON for an external LLM.
 - Direct LLM integration, lecture-file extraction, classroom management, short-answer grading, social features, and offline exam mode are outside the MVP.
 
 ## Evidence on Hand
 
-The product requirements and a sample MockTest JSON document are in `docs/AI Mock Test SRS.md` and `docs/Mock Test Overview.md`. The repository has no existing brand assets, testimonials, or production demonstrations; do not fabricate any.
+The product requirements and a sample MockTest JSON document are in `docs/AI Mock Test SRS.md` and `docs/Mock Test Overview.md`. The repository has no existing brand assets or testimonials; do not fabricate any.
 
 ## Product Principles
 
@@ -46,7 +46,7 @@ The product requirements and a sample MockTest JSON document are in `docs/AI Moc
 - Keep importing and starting a test quick.
 - Hide answers and explanations until submission.
 - Keep the data model and runtime small.
-- Store only the user's tests and attempt history; source study files are not needed.
+- Store tests and attempt history locally; source study files are not needed.
 
 ## Accessibility & Inclusion
 

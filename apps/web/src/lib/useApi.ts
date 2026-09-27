@@ -1,13 +1,11 @@
-import { useAuth } from "@clerk/react";
 import { useCallback } from "react";
 import { apiRequest, type ApiClientError } from "./api";
 
 export function useApi() {
-  const { getToken } = useAuth();
   return useCallback(
     <T,>(path: string, options?: { method?: string; body?: unknown; signal?: AbortSignal }) =>
-      apiRequest<T>(path, getToken, options),
-    [getToken],
+      apiRequest<T>(path, options),
+    [],
   );
 }
 

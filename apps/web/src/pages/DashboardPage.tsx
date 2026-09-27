@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { useUser } from "@clerk/react";
 import { ArrowRight, Clock3, FilePlus2, History, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
@@ -10,7 +9,6 @@ import type { HistoryItem, SavedTest } from "../lib/types";
 export function DashboardPage() {
   const api = useApi();
   const navigate = useNavigate();
-  const { user } = useUser();
   const [tests, setTests] = useState<SavedTest[]>([]);
   const [recent, setRecent] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,12 +60,10 @@ export function DashboardPage() {
   };
 
   const attemptCount = tests.reduce((total, test) => total + test.attemptCount, 0);
-  const greeting = user?.firstName ? `Welcome back, ${user.firstName}.` : "Welcome back.";
-
   return (
     <div className="page-stack">
       <div className="page-heading dashboard-heading">
-        <div><h1>{greeting}</h1><p>Choose a test to continue, or bring in a new set of questions.</p></div>
+        <div><h1>Your practice workspace</h1><p>Choose a test to continue, or bring in a new set of questions.</p></div>
         <Link className="btn btn-primary" to="/create"><FilePlus2 size={17} aria-hidden="true" /> Import a test</Link>
       </div>
 
