@@ -144,7 +144,7 @@ The Vercel project uses the repository root. It builds the Vite frontend into Ve
 4. Add `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to Vercel's environment variables. The publishable key is included in the built frontend; the secret key stays server-side.
 5. Leave `CLERK_AUTHORIZED_PARTIES` unset on Vercel to allow the Vercel project and deployment URLs automatically. If you use a custom domain, set it to that exact HTTPS origin, such as `https://mocktest.example.com`.
 
-Add the production database and Clerk variables before the first production build. For fully working Preview deployments, configure Preview variables too and use a separate Supabase project for preview data. Preview builds run migrations when a database URL is configured. Local Docker data is not copied to Supabase. Keep `.env` and database files out of Git.
+Add the production database and Clerk variables before the first production build. For fully working Preview deployments, configure Preview variables too and use a separate Supabase project for preview data. Preview builds do not apply migrations. Local Docker data is not copied to Supabase. Keep `.env` and database files out of Git.
 
 For Supabase connection modes and their use cases, see [Supabase's PostgreSQL connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres). See [Vercel's Elysia guide](https://vercel.com/docs/frameworks/backend/elysia) for the serverless app entry point and [Vercel's Vite guide](https://vercel.com/docs/frameworks/frontend/vite) for SPA rewrites.
 

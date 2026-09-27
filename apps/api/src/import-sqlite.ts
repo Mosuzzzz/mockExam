@@ -1,7 +1,8 @@
 import "./env";
 import { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { answerMapSchema, mockTestSchema } from "@mocktest/shared";
 import { assertDatabaseConfigured } from "./db/client";
@@ -50,7 +51,8 @@ function asDate(value: number, description: string) {
 
 assertDatabaseConfigured();
 
-const sqlitePath = resolve(import.meta.dir, "../../../data/mocktest.sqlite");
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const sqlitePath = resolve(currentDir, "../../../data/mocktest.sqlite");
 if (!existsSync(sqlitePath)) {
   throw new Error(`No legacy SQLite database was found at ${sqlitePath}.`);
 }

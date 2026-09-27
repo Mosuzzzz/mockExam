@@ -4,9 +4,13 @@
   "workspaces": {
     "": {
       "name": "mocktest",
+      "dependencies": {
+        "elysia": "*",
+      },
       "devDependencies": {
         "@playwright/test": "^1.63.0",
         "@types/bun": "*",
+        "@types/node": "^26.6.3",
         "concurrently": "*",
         "typescript": "*",
       },

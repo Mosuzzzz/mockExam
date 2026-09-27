@@ -1,5 +1,6 @@
 import "./env";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -13,7 +14,8 @@ if (!connectionString) {
 const pool = new Pool({ connectionString, max: 1 });
 try {
   const db = drizzle({ client: pool, schema: { attempts, mockTests } });
-  await migrate(db, { migrationsFolder: resolve(import.meta.dir, "../drizzle-postgres") });
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  await migrate(db, { migrationsFolder: resolve(currentDir, "../drizzle-postgres") });
   console.info("PostgreSQL migrations applied.");
 } finally {
   await pool.end();
