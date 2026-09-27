@@ -1,6 +1,7 @@
 node_modules/
 dist/
 apps/*/dist/
+/public/
 data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal

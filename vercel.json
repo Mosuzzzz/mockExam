@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x",
+  "buildCommand": "bun run build:vercel",
+  "rewrites": [
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/create", "destination": "/index.html" },
+    { "source": "/history", "destination": "/index.html" },
+    { "source": "/exam/:attemptId", "destination": "/index.html" },
+    { "source": "/result/:attemptId", "destination": "/index.html" }
+  ]
+}

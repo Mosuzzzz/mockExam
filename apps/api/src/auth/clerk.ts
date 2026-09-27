@@ -14,11 +14,7 @@ export async function authenticateRequest(request: Request): Promise<string | nu
   const clerk = getClient();
   if (!clerk) return null;
 
-  const configuredParties = process.env.CLERK_AUTHORIZED_PARTIES?.trim();
-  const authorizedParties = (configuredParties || process.env.RENDER_EXTERNAL_URL || "")
-    .split(",")
-    .map((party) => party.trim())
-    .filter(Boolean);
+  const authorizedParties = getAuthorizedParties();
   if (!authorizedParties.length) return null;
 
   const state = await clerk.authenticateRequest(request, { authorizedParties });
@@ -26,10 +22,24 @@ export async function authenticateRequest(request: Request): Promise<string | nu
   return state.toAuth().userId ?? null;
 }
 
+function getAuthorizedParties() {
+  const configuredParties = process.env.CLERK_AUTHORIZED_PARTIES?.trim();
+  if (configuredParties) {
+    return configuredParties
+      .split(",")
+      .map((party) => party.trim())
+      .filter(Boolean);
+  }
+
+  return [process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_URL]
+    .filter((host): host is string => Boolean(host?.trim()))
+    .map((host) => (host.startsWith("http://") || host.startsWith("https://") ? host : `https://${host}`));
+}
+
 export function authIsConfigured() {
   return Boolean(
     process.env.CLERK_SECRET_KEY &&
       process.env.CLERK_PUBLISHABLE_KEY &&
-      (process.env.CLERK_AUTHORIZED_PARTIES?.trim() || process.env.RENDER_EXTERNAL_URL),
+      getAuthorizedParties().length,
   );
 }

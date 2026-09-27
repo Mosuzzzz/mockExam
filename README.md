@@ -106,6 +106,7 @@ Imports are limited to 1 MB. The full JSON contract lives in [`packages/shared/s
 | `docker compose down` | Stop the database container and preserve its named volume. |
 | `bun run dev` | Start the Vite web app and Elysia API. |
 | `bun run build` | Build the web app for production. |
+| `bun run build:vercel` | Build the frontend and prepare it for Vercel; production builds also apply database migrations. |
 | `bun run start` | Apply PostgreSQL migrations and start the API; serves `apps/web/dist` if it exists. |
 | `bun run typecheck` | Type-check the shared package, API, and web app. |
 | `bun run test` | Run shared-schema and API service tests. |
@@ -133,13 +134,19 @@ compose.yaml      Local PostgreSQL service and persistent Docker volume
 
 The API verifies Clerk session tokens, scopes records to the signed-in user, and calculates scores from the saved test. Active exam responses omit answer keys and explanations; completed results include them.
 
-## Production deployment
+## Deploy to Vercel
 
-The root `render.yaml` defines a free Render Docker web service in Singapore. Create a Supabase project in Singapore, then copy its **Session pooler** connection string from the Supabase Dashboard into `DATABASE_URL` when Render prompts for it. Make sure the URI includes `sslmode=require`. Session mode supports persistent connections and IPv4-only networks. Also provide the Clerk publishable and secret keys directly in Render. Render sets the app's HTTPS origin automatically; the API uses it as Clerk's authorized party unless `CLERK_AUTHORIZED_PARTIES` is explicitly set. The API applies PostgreSQL migrations on startup and serves the frontend and `/api` from the same origin. The hosted database starts empty; local Docker database records are not copied. Keep `.env` and database files out of Git.
+The Vercel project uses the repository root. It builds the Vite frontend into Vercel's static `public` output and runs the Elysia API as a Vercel Function. The `vercel.json` file defines the build command and client-side route rewrites. Local development can continue using Docker Compose for PostgreSQL.
 
-The free Render web service sleeps after 15 minutes without requests. Supabase's free plan includes a 500 MB database and may pause a project after seven days of low activity. See [Render's free-tier limits](https://render.com/docs/free) and [Supabase's project pausing rules](https://supabase.com/docs/guides/platform/free-project-pausing).
+1. Import this GitHub repository into Vercel. Keep **Root Directory** set to `.` (the repository root); don't set it to `apps/web`. Keep **Automatically expose System Environment Variables** enabled so production migrations and Clerk origin checks can identify the deployment.
+2. Create a Supabase project, then open **Connect** in its dashboard and copy the **Transaction pooler** connection string into Vercel's `DATABASE_URL`. Keep the connection string's `sslmode=require` setting. This pooler is intended for serverless functions and uses IPv4.
+3. Copy the **Session pooler** connection string into Vercel's `MIGRATION_DATABASE_URL`. Drizzle applies migrations during a production build through this single-session connection. A production deployment requires this variable.
+4. Add `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to Vercel's environment variables. The publishable key is included in the built frontend; the secret key stays server-side.
+5. Leave `CLERK_AUTHORIZED_PARTIES` unset on Vercel to allow the Vercel project and deployment URLs automatically. If you use a custom domain, set it to that exact HTTPS origin, such as `https://mocktest.example.com`.
 
-For another host, set `CLERK_AUTHORIZED_PARTIES` to the app's exact HTTPS origin, provide Clerk keys as server environment variables, and set `DATABASE_URL` to a reachable PostgreSQL database. Build the frontend with `bun run build`, then start the API with `bun run start`.
+Add the production database and Clerk variables before the first production build. For fully working Preview deployments, configure Preview variables too and use a separate Supabase project for preview data. Preview builds run migrations when a database URL is configured. Local Docker data is not copied to Supabase. Keep `.env` and database files out of Git.
+
+For Supabase connection modes and their use cases, see [Supabase's PostgreSQL connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres). See [Vercel's Elysia guide](https://vercel.com/docs/frameworks/backend/elysia) for the serverless app entry point and [Vercel's Vite guide](https://vercel.com/docs/frameworks/frontend/vite) for SPA rewrites.
 
 ## Project documents
 

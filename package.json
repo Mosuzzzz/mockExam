@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "concurrently -k -n API,WEB -c blue,green \"bun run --cwd apps/api dev\" \"bun run --cwd apps/web dev\"",
     "build": "bun run --cwd apps/web build",
+    "build:vercel": "bun scripts/build-vercel.mjs",
     "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd apps/api typecheck && bun run --cwd apps/web typecheck",
     "test": "bun run --cwd packages/shared test && bun run --cwd apps/api test",
     "test:e2e": "playwright test",
