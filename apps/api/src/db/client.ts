@@ -2,14 +2,16 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { attempts, mockTests } from "./schema";
 
+const connectionString = process.env.DATABASE_URL?.trim() || process.env.POSTGRES_URL?.trim();
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   max: Number(process.env.PG_POOL_MAX ?? (process.env.VERCEL ? "1" : "10")),
 });
 export const db = drizzle({ client: pool, schema: { attempts, mockTests } });
 
 export function assertDatabaseConfigured() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required. Configure a PostgreSQL connection string in the environment.");
+  if (!connectionString) {
+    throw new Error("Set DATABASE_URL or POSTGRES_URL to configure the PostgreSQL connection.");
   }
 }

@@ -6,9 +6,13 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { attempts, mockTests } from "./db/schema";
 
-const connectionString = process.env.MIGRATION_DATABASE_URL?.trim() || process.env.DATABASE_URL;
+const connectionString =
+  process.env.MIGRATION_DATABASE_URL?.trim() ||
+  process.env.POSTGRES_URL_NON_POOLING?.trim() ||
+  process.env.DATABASE_URL?.trim() ||
+  process.env.POSTGRES_URL?.trim();
 if (!connectionString) {
-  throw new Error("Set MIGRATION_DATABASE_URL or DATABASE_URL to run PostgreSQL migrations.");
+  throw new Error("Set MIGRATION_DATABASE_URL or POSTGRES_URL_NON_POOLING to run PostgreSQL migrations.");
 }
 
 const pool = new Pool({ connectionString, max: 1 });
