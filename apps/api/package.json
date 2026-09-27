@@ -1,0 +1,24 @@
+{
+  "name": "@mocktest/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun src/migrate.ts"
+  },
+  "dependencies": {
+    "@clerk/backend": "*",
+    "@elysia/static": "*",
+    "@mocktest/shared": "workspace:*",
+    "dotenv": "*",
+    "drizzle-orm": "*",
+    "elysia": "*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "*"
+  }
+}
