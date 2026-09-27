@@ -2,6 +2,12 @@
 
 Mode: Operate
 
+## FORM
+
+- Selected concept: Clear exam desk — focused and quiet, with strong progress cues.
+- Seed key: none was supplied with the user's selection.
+- Provenance: direct user choice in this project conversation on 2026-09-27.
+
 ## Pinned direction
 
 Clear exam desk — focused and quiet, with strong progress cues. This direction was selected by the user and governs the workspace screens.

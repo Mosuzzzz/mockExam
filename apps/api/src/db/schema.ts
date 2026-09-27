@@ -2,12 +2,15 @@ import { sql } from "drizzle-orm";
 import {
   index,
   integer,
-  sqliteTable,
+  jsonb,
+  pgTable,
   text,
+  timestamp,
   uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/pg-core";
+import type { AnswerMap, MockTest } from "@mocktest/shared";
 
-export const mockTests = sqliteTable(
+export const mockTests = pgTable(
   "mock_tests",
   {
     id: text("id").primaryKey(),
@@ -16,14 +19,14 @@ export const mockTests = sqliteTable(
     description: text("description"),
     durationMinutes: integer("duration_minutes").notNull(),
     questionCount: integer("question_count").notNull(),
-    testJson: text("test_json").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    testJson: jsonb("test_json").$type<MockTest>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull(),
   },
   (table) => [index("mock_tests_owner_created").on(table.clerkUserId, table.createdAt)],
 );
 
-export const attempts = sqliteTable(
+export const attempts = pgTable(
   "attempts",
   {
     id: text("id").primaryKey(),
@@ -32,15 +35,15 @@ export const attempts = sqliteTable(
       .notNull()
       .references(() => mockTests.id, { onDelete: "cascade" }),
     status: text("status", { enum: ["in_progress", "completed"] }).notNull(),
-    answersJson: text("answers_json").notNull().default("{}"),
+    answersJson: jsonb("answers_json").$type<AnswerMap>().notNull().default(sql`'{}'::jsonb`),
     answerRevision: integer("answer_revision").notNull().default(0),
     score: integer("score"),
     totalQuestions: integer("total_questions").notNull(),
     percentage: integer("percentage"),
     completionReason: text("completion_reason", { enum: ["manual", "timeout"] }),
-    startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
-    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
-    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
   },
   (table) => [
     index("attempts_owner_completed").on(table.clerkUserId, table.completedAt),

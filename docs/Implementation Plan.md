@@ -1,16 +1,16 @@
 # MockTest MVP Implementation Plan
 
-Based on `AI Mock Test SRS.md` (v1.1) and `Mock Test Overview.md`.
+Based on `AI Mock Test SRS.md` (v1.2) and `Mock Test Overview.md`.
 
 ## Current state and target
 
-The repository currently contains the two requirements documents and no application code. Build the complete V1 flow: Google/GitHub sign-in → import JSON → save test → timed exam → submit → review → history → retake.
+The core V1 application is implemented in this repository. Its target journey is Google/GitHub sign-in → import JSON → save test → timed exam → submit → review and export missed questions → history → retake. Remaining release work includes verifying real OAuth sign-in in a browser and production deployment settings.
 
-Keep the specified stack: Bun, React/Vite/TypeScript, ElysiaJS, Clerk, Zod, Drizzle, SQLite, Tailwind, and selective shadcn/ui. Keep question generation external and store tests and answer sets as JSON.
+Use Bun, React/Vite/TypeScript, ElysiaJS, Clerk, Zod, Drizzle, PostgreSQL in Docker for local development, and Tailwind with selective shadcn/ui. Keep question generation external and store tests and answer sets as JSON.
 
-## Proposed decisions to resolve specification gaps
+## Implemented decisions to resolve specification gaps
 
-These are implementation recommendations, not additional requirements already approved in the SRS.
+These implementation choices are reflected in the app and the updated SRS.
 
 | Topic | Proposed default |
 | --- | --- |
@@ -44,9 +44,9 @@ Exit criteria: both apps start locally; the shared schema accepts the sample and
 
 - Configure Clerk for Google and GitHub only, with frontend session controls and backend token verification.
 - Create Drizzle migrations for `mock_tests` and `attempts`, including the lifecycle fields proposed above.
-- Enable SQLite foreign keys and cascading deletion; index owner IDs, test IDs, and history timestamps used in queries.
+- Use PostgreSQL foreign keys and cascading deletion; index owner IDs, test IDs, and history timestamps used in queries.
 - Centralize authenticated ownership checks. Return a consistent not-found response for missing or unowned records.
-- Keep Clerk secrets and the SQLite path in server-only configuration.
+- Keep Clerk secrets and `DATABASE_URL` in server-only configuration.
 
 Exit criteria: either provider signs in successfully; unauthenticated requests fail; one user's IDs cannot expose or modify another user's records.
 
@@ -77,6 +77,7 @@ Exit criteria: refresh preserves saved answers and the original deadline; duplic
 ### 5. Results, history, and retakes
 
 - Build `/result/:attemptId` with score, percentage, correct/incorrect/unanswered counts, selected and correct options, and optional explanations.
+- Identify each question's outcome and provide a versioned JSON export of incorrect and unanswered items to copy or download for an external LLM.
 - Build `/history` with test title, score, percentage, and completion date, ordered newest first.
 - Connect dashboard summaries to persisted attempts.
 - Retake starts a fresh attempt while completed attempts remain unchanged.
@@ -91,8 +92,8 @@ Exit criteria: results survive logout/login; review matches server scoring; reta
 - Check keyboard navigation, focus, labels, non-color status indicators, and layouts at 360 px and desktop widths.
 - Check Chromium, Firefox, and WebKit; smoke-check Safari for the stated compatibility target.
 - Measure core-page usability against the approximately 2.5-second target and normal API processing against the sub-500 ms target under a documented representative load.
-- Deploy a single Bun API instance with persistent SQLite storage and HTTPS. Serve the built frontend and `/api` under one origin where practical.
-- Document migrations, production Clerk/OAuth settings, environment variables, health checks, SQLite-consistent backups, and restore steps. Confirm a restore before release.
+- Deploy a Bun API instance with persistent PostgreSQL storage and HTTPS. Serve the built frontend and `/api` under one origin where practical.
+- Document migrations, production Clerk/OAuth settings, environment variables, health checks, PostgreSQL backups, and restore steps. Confirm a restore before release.
 
 Exit criteria: the SRS V1 acceptance flow works in the deployed environment, with persistent data and passing critical checks.
 
@@ -126,4 +127,4 @@ Build phases 1–5 in order, adding relevant checks alongside each phase; phase 
 
 External setup needed: a Clerk application with both OAuth providers, permitted development/production redirects, and a hosting target with persistent writable disk. Local schema, database, and UI work can begin before production hosting is selected.
 
-Defer all SRS future enhancements until V1 is accepted: additional question types, analytics, sharing, direct LLM integration, PostgreSQL, and offline/PWA support.
+Defer all SRS future enhancements until V1 is accepted: additional question types, analytics, sharing, direct LLM integration, and offline/PWA support.

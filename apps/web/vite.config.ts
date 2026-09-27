@@ -9,11 +9,12 @@ const appDir = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   root: appDir,
   envDir: resolve(appDir, "../.."),
+  envPrefix: ["VITE_", "CLERK_PUBLISHABLE_KEY"],
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { "/api": "http://localhost:3000" },
+    proxy: { "/api": "http://localhost:3001" },
   },
   build: { outDir: "dist", emptyOutDir: true },
 });

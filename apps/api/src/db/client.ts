@@ -1,14 +1,12 @@
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { attempts, mockTests } from "./schema";
 
-const rootDir = resolve(import.meta.dir, "../../..");
-export const databasePath = resolve(rootDir, process.env.DATABASE_PATH ?? "data/mocktest.sqlite");
-mkdirSync(dirname(databasePath), { recursive: true });
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema: { attempts, mockTests } });
 
-export const sqlite = new Database(databasePath, { create: true });
-sqlite.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
-
-export const db = drizzle({ client: sqlite, schema: { attempts, mockTests } });
+export function assertDatabaseConfigured() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is required. Start the PostgreSQL Docker service and configure the root .env file.");
+  }
+}

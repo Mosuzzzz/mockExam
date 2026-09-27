@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-delegated: Bun, React + Vite + TypeScript, ElysiaJS, Clerk, Zod, Drizzle ORM, SQLite, Tailwind CSS, with selective shadcn/ui as specified by the project SRS.
+delegated: Bun, React + Vite + TypeScript, ElysiaJS, Clerk, Zod, Drizzle ORM, PostgreSQL in Docker for local development, Tailwind CSS, with selective shadcn/ui as specified by the project SRS.
 
 ## Users
 
@@ -32,7 +32,8 @@ Students generate MockTest JSON v1 outside the app, then paste it or upload a `.
 - Import, validate, save, take, score, review, retake, and delete multiple-choice tests.
 - Each question has exactly four options; tests have 1–100 questions and duration from 1–180 minutes.
 - The server owns scoring and every test and attempt query is scoped to the authenticated Clerk user.
-- Keep tests and answer sets primarily as JSON. Use SQLite; no separate AI service, database server, queue, or microservice in the MVP.
+- Keep tests and answer sets primarily as JSON in PostgreSQL. Run PostgreSQL in Docker for local development; no separate AI service, queue, or microservice in the MVP.
+- After submission, mark every question's result and let students copy or download incorrect and unanswered items as JSON for an external LLM.
 - Direct LLM integration, lecture-file extraction, classroom management, short-answer grading, social features, and offline exam mode are outside the MVP.
 
 ## Evidence on Hand

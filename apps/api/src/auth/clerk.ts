@@ -14,7 +14,8 @@ export async function authenticateRequest(request: Request): Promise<string | nu
   const clerk = getClient();
   if (!clerk) return null;
 
-  const authorizedParties = (process.env.CLERK_AUTHORIZED_PARTIES ?? "")
+  const configuredParties = process.env.CLERK_AUTHORIZED_PARTIES?.trim();
+  const authorizedParties = (configuredParties || process.env.RENDER_EXTERNAL_URL || "")
     .split(",")
     .map((party) => party.trim())
     .filter(Boolean);
@@ -29,6 +30,6 @@ export function authIsConfigured() {
   return Boolean(
     process.env.CLERK_SECRET_KEY &&
       process.env.CLERK_PUBLISHABLE_KEY &&
-      process.env.CLERK_AUTHORIZED_PARTIES?.trim(),
+      (process.env.CLERK_AUTHORIZED_PARTIES?.trim() || process.env.RENDER_EXTERNAL_URL),
   );
 }

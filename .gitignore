@@ -4,6 +4,12 @@ apps/*/dist/
 data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal
+apps/data/*.sqlite
+apps/data/*.sqlite-shm
+apps/data/*.sqlite-wal
+playwright-report/
+test-results/
+.impeccable/review/
 .env
 .env.*
 !.env.example

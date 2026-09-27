@@ -3,8 +3,8 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { staticPlugin } from "@elysia/static";
 import { Elysia } from "elysia";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { db } from "./db/client";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { assertDatabaseConfigured, db } from "./db/client";
 import { authIsConfigured, authenticateRequest } from "./auth/clerk";
 import { ApiError } from "./errors";
 import {
@@ -19,7 +19,8 @@ import {
   submitAttempt,
 } from "./services/attempts";
 
-const migrationsFolder = resolve(import.meta.dir, "../drizzle");
+assertDatabaseConfigured();
+const migrationsFolder = resolve(import.meta.dir, "../drizzle-postgres");
 await migrate(db, { migrationsFolder });
 
 const privateApi = new Elysia()
@@ -73,6 +74,7 @@ if (existsSync(webAssets)) {
   app.use(staticPlugin({ assets: webAssets, prefix: "", indexHTML: true }));
 }
 
-const port = Number(process.env.PORT ?? 3000);
-app.listen(port);
-console.info(`MockTest API listening on http://localhost:${port}`);
+const port = Number(process.env.PORT ?? 3001);
+const host = process.env.HOST ?? "127.0.0.1";
+app.listen({ hostname: host, port });
+console.info(`MockTest API listening on http://${host}:${port}`);

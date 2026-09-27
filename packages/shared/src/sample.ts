@@ -1,0 +1,26 @@
+import type { MockTest } from "./schema";
+
+export const sampleTest: MockTest = {
+  version: "1.0",
+  title: "Database Midterm",
+  description: "Practice for Chapters 1–5",
+  duration_minutes: 25,
+  questions: [
+    {
+      id: "q1",
+      type: "multiple_choice",
+      question: "What does a primary key do?",
+      options: ["Uniquely identifies a row", "Names a table", "Connects to a database server", "Sorts every query"],
+      answer: 0,
+      explanation: "A primary key gives each row a unique identifier.",
+    },
+    {
+      id: "q2",
+      type: "multiple_choice",
+      question: "Which SQL clause filters rows before grouping?",
+      options: ["HAVING", "ORDER BY", "WHERE", "LIMIT"],
+      answer: 2,
+      explanation: "WHERE filters individual rows before GROUP BY is applied.",
+    },
+  ],
+};

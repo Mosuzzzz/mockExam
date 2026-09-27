@@ -34,7 +34,7 @@ MockTest provides:
 - **OAuth providers:** Google + GitHub only
 - **Validation:** Zod
 - **ORM:** Drizzle ORM
-- **Database:** SQLite
+- **Database:** PostgreSQL 17 (local development through Docker Compose)
 - **Styling:** Tailwind CSS + selective shadcn/ui
 - **Testing:** Playwright + focused unit tests
 - **AI integration:** None; users generate JSON with their preferred LLM
@@ -44,7 +44,6 @@ The MVP intentionally avoids:
 - Built-in LLM APIs
 - Next.js server framework features
 - Prisma
-- PostgreSQL
 - Redis
 - Microservices
 - Username/password authentication
@@ -72,7 +71,7 @@ ChatGPT / Gemini / Claude / Local LLM
         Zod validation + auth
                  │
                  ▼
-         Drizzle ORM + SQLite
+       Drizzle ORM + PostgreSQL
 ```
 
 ## Core Data Model

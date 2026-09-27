@@ -1,4 +1,5 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
+import type { PoolClient } from "pg";
 import {
   answerMapSchema,
   formatValidationIssues,
@@ -7,7 +8,7 @@ import {
   type MockTest,
 } from "@mocktest/shared";
 import { attempts, mockTests } from "../db/schema";
-import { db, sqlite } from "../db/client";
+import { db, pool } from "../db/client";
 import { ApiError, notFound } from "../errors";
 
 type AttemptRow = typeof attempts.$inferSelect;
@@ -17,25 +18,35 @@ type RawAttempt = {
   clerk_user_id: string;
   mock_test_id: string;
   status: "in_progress" | "completed";
-  answers_json: string;
+  answers_json: unknown;
   answer_revision: number;
   score: number | null;
   total_questions: number;
   percentage: number | null;
   completion_reason: "manual" | "timeout" | null;
-  started_at: number;
-  expires_at: number;
-  completed_at: number | null;
+  started_at: Date;
+  expires_at: Date;
+  completed_at: Date | null;
 };
 
-function parseTest(row: TestRow): MockTest {
-  const parsed = mockTestSchema.safeParse(JSON.parse(row.testJson));
+function parseTest(value: unknown): MockTest {
+  const parsed = mockTestSchema.safeParse(value);
   if (!parsed.success) throw new ApiError(500, "CORRUPT_TEST", "A saved test could not be read.");
   return parsed.data;
 }
 
-function parseAnswers(value: string): AnswerMap {
-  const parsed = answerMapSchema.safeParse(JSON.parse(value));
+function toExamTest(test: MockTest) {
+  return {
+    version: test.version,
+    title: test.title,
+    description: test.description,
+    duration_minutes: test.duration_minutes,
+    questions: test.questions.map(({ answer: _answer, explanation: _explanation, ...question }) => question),
+  };
+}
+
+function parseAnswers(value: unknown): AnswerMap {
+  const parsed = answerMapSchema.safeParse(value);
   return parsed.success ? parsed.data : {};
 }
 
@@ -62,79 +73,81 @@ function toRawAttempt(row: AttemptRow): RawAttempt {
     total_questions: row.totalQuestions,
     percentage: row.percentage,
     completion_reason: row.completionReason,
-    started_at: row.startedAt.getTime(),
-    expires_at: row.expiresAt.getTime(),
-    completed_at: row.completedAt?.getTime() ?? null,
+    started_at: row.startedAt,
+    expires_at: row.expiresAt,
+    completed_at: row.completedAt,
   };
 }
 
-function gradeAndFinalize(userId: string, attemptId: string, reason: "manual" | "timeout") {
-  const finalize = sqlite.transaction((owner: string, id: string, requestedReason: "manual" | "timeout") => {
-    for (let tries = 0; tries < 4; tries += 1) {
-      const row = sqlite
-        .query("SELECT * FROM attempts WHERE id = ? AND clerk_user_id = ?")
-        .get(id, owner) as RawAttempt | null;
-      if (!row) throw notFound();
-      if (row.status === "completed") return row;
+async function gradeAndFinalizeWithClient(
+  client: PoolClient,
+  userId: string,
+  attemptId: string,
+  reason: "manual" | "timeout",
+): Promise<RawAttempt> {
+  const attemptResult = await client.query<RawAttempt>(
+    "SELECT * FROM attempts WHERE id = $1 AND clerk_user_id = $2 FOR UPDATE",
+    [attemptId, userId],
+  );
+  const row = attemptResult.rows[0];
+  if (!row) throw notFound();
+  if (row.status === "completed") return row;
 
-      const testRow = sqlite
-        .query("SELECT test_json FROM mock_tests WHERE id = ? AND clerk_user_id = ?")
-        .get(row.mock_test_id, owner) as { test_json: string } | null;
-      if (!testRow) throw notFound();
-      const parsed = mockTestSchema.safeParse(JSON.parse(testRow.test_json));
-      if (!parsed.success) throw new ApiError(500, "CORRUPT_TEST", "A saved test could not be read.");
-      const answers = parseAnswers(row.answers_json);
-      const result = scoreTest(parsed.data, answers);
-      const completedAt = Date.now();
-      const actualReason = requestedReason === "timeout" || completedAt >= row.expires_at ? "timeout" : "manual";
-      const updated = sqlite
-        .query(
-          `UPDATE attempts
-           SET status = 'completed', score = ?, total_questions = ?, percentage = ?,
-               completion_reason = ?, completed_at = ?
-           WHERE id = ? AND clerk_user_id = ? AND status = 'in_progress' AND answers_json = ? AND answer_revision = ?`,
-        )
-        .run(
-          result.score,
-          result.total,
-          result.percentage,
-          actualReason,
-          completedAt,
-          id,
-          owner,
-          row.answers_json,
-          row.answer_revision,
-        );
-      if (updated.changes) {
-        return sqlite.query("SELECT * FROM attempts WHERE id = ? AND clerk_user_id = ?").get(id, owner) as RawAttempt;
-      }
-    }
+  const testResult = await client.query<{ test_json: unknown }>(
+    "SELECT test_json FROM mock_tests WHERE id = $1 AND clerk_user_id = $2",
+    [row.mock_test_id, userId],
+  );
+  const testRow = testResult.rows[0];
+  if (!testRow) throw notFound();
+  const test = parseTest(testRow.test_json);
+  const answers = parseAnswers(row.answers_json);
+  const result = scoreTest(test, answers);
+  const completedAt = new Date();
+  const actualReason = reason === "timeout" || completedAt >= row.expires_at ? "timeout" : "manual";
+
+  const updatedResult = await client.query<RawAttempt>(
+    `UPDATE attempts
+     SET status = 'completed', score = $1, total_questions = $2, percentage = $3,
+         completion_reason = $4, completed_at = $5
+     WHERE id = $6 AND clerk_user_id = $7 AND status = 'in_progress'
+     RETURNING *`,
+    [result.score, result.total, result.percentage, actualReason, completedAt, attemptId, userId],
+  );
+  const updated = updatedResult.rows[0];
+  if (!updated) {
     throw new ApiError(409, "SUBMISSION_CONFLICT", "The answers changed while the exam was being submitted. Please submit again.");
-  });
-  return finalize.immediate(userId, attemptId, reason) as RawAttempt;
+  }
+  return updated;
+}
+
+async function gradeAndFinalize(userId: string, attemptId: string, reason: "manual" | "timeout") {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const row = await gradeAndFinalizeWithClient(client, userId, attemptId, reason);
+    await client.query("COMMIT");
+    return row;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 function rawToView(row: RawAttempt, testRow: TestRow, serverNow = Date.now()) {
-  const test = parseTest(testRow);
+  const test = parseTest(testRow.testJson);
   const answers = parseAnswers(row.answers_json);
-  const visibleTest =
-    row.status === "completed"
-      ? test
-      : {
-          version: test.version,
-          title: test.title,
-          description: test.description,
-          duration_minutes: test.duration_minutes,
-          questions: test.questions.map(({ answer: _answer, explanation: _explanation, ...question }) => question),
-        };
+  const visibleTest = row.status === "completed" ? test : toExamTest(test);
   return {
     id: row.id,
+    mockTestId: row.mock_test_id,
     status: row.status,
     answers,
     answerRevision: row.answer_revision,
-    startedAt: new Date(row.started_at).toISOString(),
-    expiresAt: new Date(row.expires_at).toISOString(),
-    completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
+    startedAt: row.started_at.toISOString(),
+    expiresAt: row.expires_at.toISOString(),
+    completedAt: row.completed_at?.toISOString() ?? null,
     completionReason: row.completion_reason,
     score: row.score,
     totalQuestions: row.total_questions,
@@ -209,7 +222,7 @@ export async function createTest(userId: string, input: unknown) {
     description: test.description ?? null,
     durationMinutes: test.duration_minutes,
     questionCount: test.questions.length,
-    testJson: JSON.stringify(test),
+    testJson: test,
     createdAt: now,
     updatedAt: now,
   });
@@ -218,7 +231,16 @@ export async function createTest(userId: string, input: unknown) {
 
 export async function readTest(userId: string, testId: string) {
   const row = await getTestRow(userId, testId);
-  return { ...row, test: parseTest(row) };
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    durationMinutes: row.durationMinutes,
+    questionCount: row.questionCount,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    test: toExamTest(parseTest(row.testJson)),
+  };
 }
 
 export async function deleteTest(userId: string, testId: string) {
@@ -230,41 +252,64 @@ export async function deleteTest(userId: string, testId: string) {
   return { deleted: true };
 }
 
-function startOrResume(userId: string, testId: string): RawAttempt {
-  const start = sqlite.transaction((owner: string, id: string) => {
-    const test = sqlite
-      .query("SELECT test_json, duration_minutes, question_count FROM mock_tests WHERE id = ? AND clerk_user_id = ?")
-      .get(id, owner) as { test_json: string; duration_minutes: number; question_count: number } | null;
-    if (!test) throw notFound();
+async function startOrResume(userId: string, testId: string): Promise<RawAttempt> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const testResult = await client.query<{ test_json: unknown; duration_minutes: number; question_count: number }>(
+      "SELECT test_json, duration_minutes, question_count FROM mock_tests WHERE id = $1 AND clerk_user_id = $2 FOR KEY SHARE",
+      [testId, userId],
+    );
+    const testRow = testResult.rows[0];
+    if (!testRow) throw notFound();
 
-    const now = Date.now();
-    const active = sqlite
-      .query("SELECT * FROM attempts WHERE mock_test_id = ? AND clerk_user_id = ? AND status = 'in_progress' LIMIT 1")
-      .get(id, owner) as RawAttempt | null;
-    if (active && active.expires_at > now) return active;
-    if (active) gradeAndFinalize(owner, active.id, "timeout");
+    const activeResult = await client.query<RawAttempt>(
+      "SELECT * FROM attempts WHERE mock_test_id = $1 AND clerk_user_id = $2 AND status = 'in_progress' LIMIT 1 FOR UPDATE",
+      [testId, userId],
+    );
+    const active = activeResult.rows[0];
+    const now = new Date();
+    if (active && active.expires_at > now) {
+      await client.query("COMMIT");
+      return active;
+    }
+    if (active) await gradeAndFinalizeWithClient(client, userId, active.id, "timeout");
 
-    const testData = JSON.parse(test.test_json) as MockTest;
+    const test = parseTest(testRow.test_json);
+    const startedAt = new Date();
+    const expiresAt = new Date(startedAt.getTime() + testRow.duration_minutes * 60_000);
     const attemptId = crypto.randomUUID();
-    const deadline = now + test.duration_minutes * 60_000;
-    sqlite
-      .query(
-        `INSERT INTO attempts
-         (id, clerk_user_id, mock_test_id, status, answers_json, answer_revision, total_questions, started_at, expires_at)
-         VALUES (?, ?, ?, 'in_progress', '{}', 0, ?, ?, ?)`,
-      )
-      .run(attemptId, owner, id, testData.questions.length, now, deadline);
-    return sqlite.query("SELECT * FROM attempts WHERE id = ? AND clerk_user_id = ?").get(attemptId, owner) as RawAttempt;
-  });
-  return start.immediate(userId, testId) as RawAttempt;
+    const inserted = await client.query<RawAttempt>(
+      `INSERT INTO attempts
+       (id, clerk_user_id, mock_test_id, status, answers_json, answer_revision, total_questions, started_at, expires_at)
+       VALUES ($1, $2, $3, 'in_progress', '{}'::jsonb, 0, $4, $5, $6)
+       RETURNING *`,
+      [attemptId, userId, testId, test.questions.length, startedAt, expiresAt],
+    );
+    const row = inserted.rows[0];
+    if (!row) throw new Error("PostgreSQL did not return the created attempt.");
+    await client.query("COMMIT");
+    return row;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+function isActiveAttemptConflict(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const pgError = error as { code?: string; constraint?: string };
+  return pgError.code === "23505" && pgError.constraint === "attempts_one_active_per_user_test";
 }
 
 export async function startAttempt(userId: string, testId: string) {
   let attempt: RawAttempt;
   try {
-    attempt = startOrResume(userId, testId);
+    attempt = await startOrResume(userId, testId);
   } catch (error) {
-    if (!(error instanceof Error) || !error.message.includes("UNIQUE constraint failed")) throw error;
+    if (!isActiveAttemptConflict(error)) throw error;
     const [existing] = await db
       .select()
       .from(attempts)
@@ -274,16 +319,16 @@ export async function startAttempt(userId: string, testId: string) {
     attempt = toRawAttempt(existing);
   }
   const row = await getTestRow(userId, testId);
-  if (attempt.status === "in_progress" && attempt.expires_at <= Date.now()) {
-    attempt = gradeAndFinalize(userId, attempt.id, "timeout");
+  if (attempt.status === "in_progress" && attempt.expires_at <= new Date()) {
+    attempt = await gradeAndFinalize(userId, attempt.id, "timeout");
   }
   return rawToView(attempt, row);
 }
 
 export async function readAttempt(userId: string, attemptId: string) {
   let attempt = toRawAttempt(await getAttemptRow(userId, attemptId));
-  if (attempt.status === "in_progress" && attempt.expires_at <= Date.now()) {
-    attempt = gradeAndFinalize(userId, attemptId, "timeout");
+  if (attempt.status === "in_progress" && attempt.expires_at <= new Date()) {
+    attempt = await gradeAndFinalize(userId, attemptId, "timeout");
   }
   const test = await getTestRow(userId, attempt.mock_test_id);
   return rawToView(attempt, test);
@@ -302,21 +347,26 @@ export async function saveAnswers(userId: string, attemptId: string, input: unkn
   }
   const row = await getAttemptRow(userId, attemptId);
   if (row.status === "completed") return rawToView(toRawAttempt(row), await getTestRow(userId, row.mockTestId));
-  if (row.expiresAt.getTime() <= Date.now()) {
-    const complete = gradeAndFinalize(userId, attemptId, "timeout");
+  if (row.expiresAt <= new Date()) {
+    const complete = await gradeAndFinalize(userId, attemptId, "timeout");
     return rawToView(complete, await getTestRow(userId, row.mockTestId));
   }
 
-  const test = parseTest(await getTestRow(userId, row.mockTestId));
+  const test = parseTest((await getTestRow(userId, row.mockTestId)).testJson);
   scoreTest(test, parsed.data);
   const expectedRevision = Number(body?.revision);
-  const changed = sqlite
-    .query(
-      `UPDATE attempts SET answers_json = ?, answer_revision = answer_revision + 1
-       WHERE id = ? AND clerk_user_id = ? AND status = 'in_progress' AND expires_at > ? AND answer_revision = ?`,
-    )
-    .run(JSON.stringify(parsed.data), attemptId, userId, Date.now(), expectedRevision);
-  if (!changed.changes) {
+  const changed = await db
+    .update(attempts)
+    .set({ answersJson: parsed.data, answerRevision: sql`${attempts.answerRevision} + 1` })
+    .where(and(
+      eq(attempts.id, attemptId),
+      eq(attempts.clerkUserId, userId),
+      eq(attempts.status, "in_progress"),
+      gt(attempts.expiresAt, new Date()),
+      eq(attempts.answerRevision, expectedRevision),
+    ))
+    .returning({ id: attempts.id });
+  if (!changed.length) {
     const latest = await getAttemptRow(userId, attemptId);
     if (latest.status === "completed") return rawToView(toRawAttempt(latest), await getTestRow(userId, latest.mockTestId));
     throw new ApiError(409, "ANSWER_CONFLICT", "This attempt changed in another tab. Reload to use the latest saved answers.");
@@ -329,7 +379,7 @@ export async function submitAttempt(userId: string, attemptId: string) {
   const attempt =
     current.status === "completed"
       ? toRawAttempt(current)
-      : gradeAndFinalize(userId, attemptId, current.expiresAt.getTime() <= Date.now() ? "timeout" : "manual");
+      : await gradeAndFinalize(userId, attemptId, current.expiresAt <= new Date() ? "timeout" : "manual");
   const test = await getTestRow(userId, attempt.mock_test_id);
   return rawToView(attempt, test);
 }
