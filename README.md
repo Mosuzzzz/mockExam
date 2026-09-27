@@ -135,7 +135,9 @@ The API verifies Clerk session tokens, scopes records to the signed-in user, and
 
 ## Production deployment
 
-The root `render.yaml` defines a Render Docker web service and a private PostgreSQL database in Singapore. Connect this repository in the Render Dashboard as a Blueprint and provide the Clerk publishable and secret keys when prompted. Render sets the app's HTTPS origin automatically; the API uses it as Clerk's authorized party unless `CLERK_AUTHORIZED_PARTIES` is explicitly set. The API applies PostgreSQL migrations on startup and serves the frontend and `/api` from the same origin. The hosted database starts empty; local Docker database records are not copied. Keep `.env` and database files out of Git.
+The root `render.yaml` defines a free Render Docker web service in Singapore. Create a Supabase project in Singapore, then copy its **Session pooler** connection string from the Supabase Dashboard into `DATABASE_URL` when Render prompts for it. Make sure the URI includes `sslmode=require`. Session mode supports persistent connections and IPv4-only networks. Also provide the Clerk publishable and secret keys directly in Render. Render sets the app's HTTPS origin automatically; the API uses it as Clerk's authorized party unless `CLERK_AUTHORIZED_PARTIES` is explicitly set. The API applies PostgreSQL migrations on startup and serves the frontend and `/api` from the same origin. The hosted database starts empty; local Docker database records are not copied. Keep `.env` and database files out of Git.
+
+The free Render web service sleeps after 15 minutes without requests. Supabase's free plan includes a 500 MB database and may pause a project after seven days of low activity. See [Render's free-tier limits](https://render.com/docs/free) and [Supabase's project pausing rules](https://supabase.com/docs/guides/platform/free-project-pausing).
 
 For another host, set `CLERK_AUTHORIZED_PARTIES` to the app's exact HTTPS origin, provide Clerk keys as server environment variables, and set `DATABASE_URL` to a reachable PostgreSQL database. Build the frontend with `bun run build`, then start the API with `bun run start`.
 

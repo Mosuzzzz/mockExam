@@ -2,7 +2,7 @@ services:
   - type: web
     name: mocktest
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -17,15 +17,4 @@ services:
       - key: CLERK_SECRET_KEY
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: mocktest-db
-          property: connectionString
-
-databases:
-  - name: mocktest-db
-    databaseName: mocktest
-    user: mocktest
-    plan: 0.1c-256mb
-    region: singapore
-    postgresMajorVersion: "17"
-    ipAllowList: []
+        sync: false
