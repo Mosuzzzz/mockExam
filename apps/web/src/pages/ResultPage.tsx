@@ -4,12 +4,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
 import { formatDate } from "../lib/format";
 import type { AttemptView } from "../lib/types";
-import { useApi, errorMessage } from "../lib/useApi";
+import { errorMessage } from "../lib/errors";
+import { readAttempt, startAttempt } from "../lib/storage";
 import { createMissedQuestionsExport } from "@mocktest/shared";
 
 export function ResultPage() {
   const { attemptId = "" } = useParams();
-  const api = useApi();
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState<AttemptView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ export function ResultPage() {
     setLoading(true);
     setError("");
     try {
-      const view = await api<AttemptView>(`/api/attempts/${attemptId}`);
+      const view = readAttempt(attemptId);
       if (view.status === "in_progress") {
         navigate(`/exam/${view.id}`, { replace: true });
         return;
@@ -32,7 +32,7 @@ export function ResultPage() {
     } finally {
       setLoading(false);
     }
-  }, [api, attemptId, navigate]);
+  }, [attemptId, navigate]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -40,7 +40,7 @@ export function ResultPage() {
     if (!attempt || attempt.status !== "completed") return;
     setRetaking(true);
     try {
-      const next = await api<{ id: string; status: "in_progress" | "completed" }>(`/api/tests/${attempt.mockTestId}/attempts`, { method: "POST" });
+      const next = startAttempt(attempt.mockTestId);
       navigate(next.status === "completed" ? `/result/${next.id}` : `/exam/${next.id}`);
     } catch (reason) {
       setError(errorMessage(reason));

@@ -4,10 +4,10 @@ import { Link } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
 import { formatDate } from "../lib/format";
 import type { HistoryItem } from "../lib/types";
-import { useApi, errorMessage } from "../lib/useApi";
+import { errorMessage } from "../lib/errors";
+import { listHistory } from "../lib/storage";
 
 export function HistoryPage() {
-  const api = useApi();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,13 +16,13 @@ export function HistoryPage() {
     setLoading(true);
     setError("");
     try {
-      setItems(await api<HistoryItem[]>("/api/history"));
+      setItems(listHistory());
     } catch (reason) {
       setError(errorMessage(reason));
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 

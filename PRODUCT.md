@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-delegated: Bun, React + Vite + TypeScript, ElysiaJS, Zod, Drizzle ORM, PostgreSQL in Docker Compose for local development, and Tailwind CSS.
+delegated: Bun, React + Vite + TypeScript, Zod, browser localStorage, and Tailwind CSS.
 
 ## Users
 
@@ -31,10 +31,10 @@ Students generate MockTest JSON v1 outside the app, then paste it or upload a `.
 - One local workspace with no accounts or sign-in.
 - Import, validate, save, take, score, review, retake, and delete multiple-choice tests.
 - Each question has exactly four options; tests have 1–100 questions and duration from 1–180 minutes.
-- The server owns scoring and tests and attempts are stored in the local PostgreSQL database.
-- Keep tests and answer sets primarily as JSON in PostgreSQL. Run PostgreSQL in Docker for local development; no separate AI service, queue, or microservice in the MVP.
+- Save tests and attempts in the current browser with `localStorage`; data is browser-profile-specific and can be edited by the user.
+- Calculate scores and deadlines in the browser. This is suitable for personal practice, not proctored or high-stakes exams.
 - After submission, mark every question's result and let students copy or download incorrect and unanswered items as JSON for an external LLM.
-- Direct LLM integration, lecture-file extraction, classroom management, short-answer grading, social features, and offline exam mode are outside the MVP.
+- Direct LLM integration, lecture-file extraction, classroom management, short-answer grading, social features, cross-device sync, and proctored exams are outside the MVP.
 
 ## Evidence on Hand
 
@@ -46,7 +46,7 @@ The product requirements and a sample MockTest JSON document are in `docs/AI Moc
 - Keep importing and starting a test quick.
 - Hide answers and explanations until submission.
 - Keep the data model and runtime small.
-- Store tests and attempt history locally; source study files are not needed.
+- Store tests and attempt history in browser storage; source study files are not needed.
 
 ## Accessibility & Inclusion
 

@@ -4,12 +4,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
 import { formatClock } from "../lib/format";
 import type { AttemptView } from "../lib/types";
-import { errorMessage } from "../lib/useApi";
-import { useApi } from "../lib/useApi";
+import { errorMessage } from "../lib/errors";
+import { readAttempt, saveAnswers, submitAttempt } from "../lib/storage";
 
 export function ExamPage() {
   const { attemptId = "" } = useParams();
-  const api = useApi();
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState<AttemptView | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -48,7 +47,8 @@ export function ExamPage() {
     setLoading(true);
     setLoadError("");
     try {
-      const view = await api<AttemptView>(`/api/attempts/${attemptId}`, { signal });
+      if (signal?.aborted) return;
+      const view = readAttempt(attemptId);
       acceptAttempt(view);
     } catch (reason) {
       if (reason instanceof DOMException && reason.name === "AbortError") return;
@@ -56,7 +56,7 @@ export function ExamPage() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [acceptAttempt, api, attemptId]);
+  }, [acceptAttempt, attemptId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -68,10 +68,7 @@ export function ExamPage() {
     setSaveState("saving");
     setSaveError("");
     const task = saveQueue.current.then(async () => {
-      const view = await api<AttemptView>(`/api/attempts/${attemptId}/answers`, {
-        method: "PATCH",
-        body: { answers: next, revision: revisionRef.current },
-      });
+      const view = saveAnswers(attemptId, { answers: next, revision: revisionRef.current });
       revisionRef.current = view.answerRevision;
       saveFailedRef.current = false;
       if (view.status === "completed") {
@@ -102,7 +99,7 @@ export function ExamPage() {
     try {
       await saveQueue.current;
       if (saveFailedRef.current) await persistAnswers(answersRef.current);
-      const result = await api<AttemptView>(`/api/attempts/${attemptId}/submit`, { method: "POST" });
+      const result = submitAttempt(attemptId);
       navigate(`/result/${result.id}`, { replace: true });
     } catch (reason) {
       setSubmitError(errorMessage(reason));
@@ -111,7 +108,7 @@ export function ExamPage() {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [api, attemptId, navigate]);
+  }, [attemptId, navigate]);
 
   const submitRef = useRef(submit);
   submitRef.current = submit;

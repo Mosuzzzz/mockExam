@@ -46,11 +46,32 @@ const completedAttempt = {
 
 test("result page copies and downloads missed-question JSON and fits mobile", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.route("**/api/attempts/e2e-attempt", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/json",
-    body: JSON.stringify(completedAttempt),
-  }));
+  const test = completedAttempt.test;
+  await page.addInitScript(({ savedTest, savedAttempt }) => {
+    localStorage.setItem("mocktest.workspace.v1", JSON.stringify({
+      version: 1,
+      tests: [{
+        id: savedAttempt.mockTestId,
+        value: savedTest,
+        createdAt: savedAttempt.startedAt,
+        updatedAt: savedAttempt.startedAt,
+      }],
+      attempts: [{
+        id: savedAttempt.id,
+        mockTestId: savedAttempt.mockTestId,
+        status: savedAttempt.status,
+        answers: savedAttempt.answers,
+        answerRevision: savedAttempt.answerRevision,
+        startedAt: savedAttempt.startedAt,
+        expiresAt: savedAttempt.expiresAt,
+        completedAt: savedAttempt.completedAt,
+        completionReason: savedAttempt.completionReason,
+        score: savedAttempt.score,
+        totalQuestions: savedAttempt.totalQuestions,
+        percentage: savedAttempt.percentage,
+      }],
+    }));
+  }, { savedTest: test, savedAttempt: completedAttempt });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/result/e2e-attempt");

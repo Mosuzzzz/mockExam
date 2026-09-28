@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Clock3, FilePlus2, History, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
-import { useApi, errorMessage } from "../lib/useApi";
+import { errorMessage } from "../lib/errors";
+import { deleteTest, listHistory, listTests, startAttempt } from "../lib/storage";
 import { formatDate, formatDuration } from "../lib/format";
 import type { HistoryItem, SavedTest } from "../lib/types";
 
 export function DashboardPage() {
-  const api = useApi();
   const navigate = useNavigate();
   const [tests, setTests] = useState<SavedTest[]>([]);
   const [recent, setRecent] = useState<HistoryItem[]>([]);
@@ -20,8 +20,8 @@ export function DashboardPage() {
     setError("");
     try {
       const [savedTests, history] = await Promise.all([
-        api<SavedTest[]>("/api/tests"),
-        api<HistoryItem[]>("/api/history"),
+        listTests(),
+        listHistory(),
       ]);
       setTests(savedTests);
       setRecent(history.slice(0, 4));
@@ -30,14 +30,14 @@ export function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 
   const startTest = async (testId: string) => {
     setStartingId(testId);
     try {
-      const attempt = await api<{ id: string; status: "in_progress" | "completed" }>(`/api/tests/${testId}/attempts`, { method: "POST" });
+      const attempt = startAttempt(testId);
       navigate(attempt.status === "completed" ? `/result/${attempt.id}` : `/exam/${attempt.id}`);
     } catch (reason) {
       setError(errorMessage(reason));
@@ -51,7 +51,7 @@ export function DashboardPage() {
     const historyText = test.attemptCount ? ` Its ${test.attemptCount} completed ${test.attemptCount === 1 ? "attempt" : "attempts"} will also be removed.` : "";
     if (!window.confirm(`Delete “${test.title}”?${historyText} This cannot be undone.`)) return;
     try {
-      await api(`/api/tests/${test.id}`, { method: "DELETE" });
+      deleteTest(test.id);
       setTests((current) => current.filter((item) => item.id !== test.id));
       setRecent((current) => current.filter((item) => item.mockTestId !== test.id));
     } catch (reason) {

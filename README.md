@@ -1,6 +1,6 @@
 # MockTest
 
-MockTest turns multiple-choice questions from your study tool into a focused, timed exam. Import a test, take it in your browser, then review your score, answers, and explanations. Your tests and attempts are saved in a local PostgreSQL database.
+MockTest turns multiple-choice questions from your study tool into a focused, timed exam. Import a test, take it in your browser, then review your score, answers, and explanations. Tests and attempts are saved in this browser with `localStorage`.
 
 MockTest does not generate questions or send them to an AI service. Create questions with the study tool you choose, then import them as JSON.
 
@@ -26,33 +26,25 @@ After starting the app, open one of these pages:
 
 ## Run locally
 
-You need [Bun](https://bun.sh/) and Docker with Docker Compose.
+You need [Bun](https://bun.sh/).
 
-Install dependencies and configure the local database connection:
+Install dependencies:
 
 ```bash
 bun install
-cp .env.example .env
 ```
 
-Start PostgreSQL and the web app and API:
+Start the web app:
 
 ```bash
-docker compose up -d postgres
 bun run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The web app sends API requests to the local API on port `3001`. The API applies pending database migrations when it starts.
+Open [http://localhost:5173](http://localhost:5173). Your tests and attempts stay in this browser profile; they do not sync across browsers or devices. Clearing this site’s browser storage deletes them. The app also needs browser storage enabled to save progress.
 
-PostgreSQL data is kept in the `mocktest_postgres_data` Docker volume. Stop the database with:
+Tests from the previous PostgreSQL setup are not transferred automatically. Reimport their source JSON to add them to browser storage.
 
-```bash
-docker compose down
-```
-
-To delete the saved database and start fresh, run `docker compose down -v`. This removes saved tests and attempts.
-
-The API listens on `127.0.0.1` by default. This is a local, single-workspace app without sign-in or user separation.
+This is a local practice tool without sign-in or user separation. Browser storage can be inspected or changed by the person using the browser, so it is not suitable for proctored or high-stakes exams.
 
 ## Import format
 
@@ -94,20 +86,20 @@ After submitting, use **Copy JSON** or **Download JSON** to export incorrect and
 
 | Command | What it does |
 | --- | --- |
-| `bun run dev` | Start the web app and API for local development. |
-| `bun run typecheck` | Type-check the shared package, API, and web app. |
-| `bun run test` | Run shared-schema and API tests. |
+| `bun run dev` | Start the web app for local development. |
+| `bun run typecheck` | Type-check the shared package and web app. |
+| `bun run test` | Run shared-schema tests. |
 | `bun run test:e2e` | Run Playwright end-to-end checks. |
-| `bun run db:generate` | Generate a Drizzle migration from the database schema. |
-| `bun run db:migrate` | Apply pending PostgreSQL migrations. |
-| `bun run db:import-sqlite` | Import legacy records from `data/mocktest.sqlite` into an empty PostgreSQL database. |
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
 
 ## Project structure
 
 ```text
-apps/web/                 React, Vite, and TypeScript frontend
-apps/api/                 Elysia API, PostgreSQL persistence, and migrations
+apps/web/                 React, Vite, TypeScript, and browser storage
+apps/api/                 Retained API package; not used by the web app
 packages/shared/          Test and missed-question JSON schemas
 docs/sample-mocktest.json Example test data
-compose.yaml              Local PostgreSQL service
 ```

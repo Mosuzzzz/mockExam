@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardPlus, History, Laptop, LayoutDashboard } from "lucide-react";
+import { ChevronRight, ClipboardPlus, History, LayoutDashboard } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 const navigation = [
@@ -34,10 +34,6 @@ export function WorkspaceLayout() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-account">
-            <span className="local-account-icon"><Laptop size={16} aria-hidden="true" /></span>
-            <div className="account-label"><span className="account-name">Local workspace</span><span className="account-subtitle">Saved in PostgreSQL</span></div>
-          </div>
           <p className="sidebar-note">A clear space to practice.</p>
         </div>
       </aside>
@@ -46,7 +42,6 @@ export function WorkspaceLayout() {
         <header className="workspace-topbar">
           <div className="mobile-brand"><img className="brand-logo" src="/mocktest.png" alt="MockTest" /></div>
           <span className="topbar-title">{pageTitle}</span>
-          <div className="topbar-user"><Laptop size={15} aria-hidden="true" /><span>Local workspace</span></div>
         </header>
         <main className="workspace-content"><Outlet /></main>
       </div>

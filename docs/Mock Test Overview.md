@@ -2,7 +2,7 @@
 
 MockTest turns mock-exam JSON made with any LLM or study tool into a timed multiple-choice exam. Question generation stays outside the app; MockTest does not call an AI API.
 
-The application is designed for one local workspace. It has no accounts or sign-in, and test data is stored in the local PostgreSQL database.
+The application is designed for one local workspace. It has no accounts or sign-in, and test data is stored in the current browser with `localStorage`.
 
 ## Main workflow
 
@@ -13,7 +13,7 @@ Create questions elsewhere → Import JSON → Validate → Take timed exam → 
 ## Features
 
 - Paste or upload a MockTest JSON file and see validation feedback.
-- Save tests in PostgreSQL and return to them from the dashboard.
+- Save tests in browser storage and return to them from the dashboard.
 - Take a timed exam with answer autosave, question navigation, and refresh recovery.
 - Review scores, correct answers, and explanations after submission.
 - Browse attempt history and retake saved tests.
@@ -23,35 +23,24 @@ Create questions elsewhere → Import JSON → Validate → Take timed exam → 
 
 - Bun workspaces
 - React, Vite, and TypeScript
-- ElysiaJS API
 - Zod validation
-- Drizzle ORM and PostgreSQL 17
-- Docker Compose for the local PostgreSQL service
+- Browser `localStorage`
 - Tailwind CSS
 
 ## Local architecture
 
 ```text
 React + Vite (localhost:5173)
-          │ /api proxy
-          ▼
-ElysiaJS API (localhost:3001)
           │
           ▼
-PostgreSQL (localhost:5432)
+Browser localStorage
 ```
 
-The API owns persistence, answer validation, deadlines, and scoring. Active exam responses omit answer keys and explanations. Completed result responses include them.
+The browser app owns persistence, answer validation, deadlines, and scoring. It hides answers and explanations from the exam screen until submission. Browser storage is editable and local to one browser profile, so this design is for personal practice.
 
 ## Data model
 
-### `mock_tests`
-
-Stores an ID, title, optional description, duration, question count, full test JSON, and timestamps.
-
-### `attempts`
-
-Stores an ID, test ID, status, saved answers, answer revision, score, total questions, percentage, completion reason, and timestamps. Deleting a test also deletes its attempts.
+The versioned workspace entry stores full tests and attempts, including answer maps, revisions, deadlines, and completed scores. Deleting a test also deletes its attempts.
 
 ## Pages
 
@@ -63,4 +52,4 @@ Stores an ID, test ID, status, saved answers, answer revision, score, total ques
 
 ## Local setup
 
-Install dependencies, start PostgreSQL with `docker compose up -d postgres`, then run `bun run dev`. The Vite server proxies `/api` requests to the local API. The API applies pending PostgreSQL migrations on startup.
+Install dependencies with `bun install`, then run `bun run dev`. No database service is needed. Data stays in the current browser and is removed if its site storage is cleared.

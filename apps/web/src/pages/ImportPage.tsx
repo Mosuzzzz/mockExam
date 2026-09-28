@@ -4,18 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { formatValidationIssues, mockTestSchema, sampleTest } from "@mocktest/shared";
 import { ErrorNotice, SuccessNotice } from "../components/Feedback";
 import { generationPrompt } from "../lib/prompt";
-import { useApi, errorMessage } from "../lib/useApi";
+import { errorMessage } from "../lib/errors";
+import { createTest } from "../lib/storage";
 
 const MAX_FILE_BYTES = 1_048_576;
 
 export function ImportPage() {
-  const api = useApi();
   const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
   const [raw, setRaw] = useState("");
   const [fileName, setFileName] = useState("");
   const [touched, setTouched] = useState(false);
-  const [serverIssues, setServerIssues] = useState<{ path: string; message: string }[]>([]);
+  const [storageIssues, setStorageIssues] = useState<{ path: string; message: string }[]>([]);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,14 +35,14 @@ export function ImportPage() {
       : { test: null, issues: formatValidationIssues(result.error.issues), syntaxError: "" };
   }, [raw]);
 
-  const currentIssues = serverIssues.length ? serverIssues : parsed.issues;
+  const currentIssues = storageIssues.length ? storageIssues : parsed.issues;
 
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setError("");
     setSaved(false);
-    setServerIssues([]);
+    setStorageIssues([]);
     if (!file.name.toLowerCase().endsWith(".json")) {
       setError("Choose a .json file to continue.");
       event.target.value = "";
@@ -67,7 +67,7 @@ export function ImportPage() {
     event.preventDefault();
     setTouched(true);
     setError("");
-    setServerIssues([]);
+    setStorageIssues([]);
     if (!parsed.test) return;
     if (new TextEncoder().encode(raw).byteLength > MAX_FILE_BYTES) {
       setError("This test is larger than 1 MB. Remove some content before saving.");
@@ -75,13 +75,13 @@ export function ImportPage() {
     }
     setSaving(true);
     try {
-      await api("/api/tests", { method: "POST", body: parsed.test });
+      createTest(parsed.test);
       setSaved(true);
       window.setTimeout(() => navigate("/dashboard"), 650);
     } catch (reason) {
       setError(errorMessage(reason));
       if (reason && typeof reason === "object" && "details" in reason && Array.isArray(reason.details)) {
-        setServerIssues(reason.details as { path: string; message: string }[]);
+        setStorageIssues(reason.details as { path: string; message: string }[]);
         setTouched(true);
       }
     } finally {
@@ -113,7 +113,7 @@ export function ImportPage() {
     setRaw("");
     setFileName("");
     setTouched(false);
-    setServerIssues([]);
+    setStorageIssues([]);
     setError("");
     setSaved(false);
   };
@@ -137,19 +137,19 @@ export function ImportPage() {
               id="test-json"
               className="json-editor"
               value={raw}
-              onChange={(event) => { setRaw(event.target.value); setFileName(""); setSaved(false); setServerIssues([]); }}
+              onChange={(event) => { setRaw(event.target.value); setFileName(""); setSaved(false); setStorageIssues([]); }}
               onBlur={() => setTouched(true)}
               placeholder={'{\n  "version": "1.0",\n  "title": "My practice test",\n  "duration_minutes": 30,\n  "questions": [ ... ]\n}'}
               spellCheck={false}
               aria-describedby="editor-help"
               aria-invalid={touched && Boolean(parsed.syntaxError || currentIssues.length)}
             />
-            <div className="editor-footer" id="editor-help"><span>{raw ? `${new TextEncoder().encode(raw).byteLength.toLocaleString()} bytes` : "Your answers stay hidden during the exam."}</span><label className="file-trigger"><Upload size={15} aria-hidden="true" /> Choose .json<input ref={fileInput} type="file" accept=".json,application/json" onChange={(event) => void onFile(event)} /></label></div>
+            <div className="editor-footer" id="editor-help"><span>{raw ? `${new TextEncoder().encode(raw).byteLength.toLocaleString()} bytes` : "Answer keys stay off screen until submission."}</span><label className="file-trigger"><Upload size={15} aria-hidden="true" /> Choose .json<input ref={fileInput} type="file" accept=".json,application/json" onChange={(event) => void onFile(event)} /></label></div>
           </div>
 
           {touched && parsed.syntaxError && <div className="validation-block validation-error" role="alert"><strong>Check the JSON syntax</strong><span>{parsed.syntaxError}</span></div>}
           {touched && !parsed.syntaxError && currentIssues.length > 0 && <div className="validation-block validation-error" role="alert"><strong>{currentIssues.length} {currentIssues.length === 1 ? "issue" : "issues"} to fix</strong><ul>{currentIssues.slice(0, 8).map((issue, index) => <li key={`${issue.path}-${index}`}><code>{issue.path}</code><span>{issue.message}</span></li>)}</ul>{currentIssues.length > 8 && <span>And {currentIssues.length - 8} more.</span>}</div>}
-          {touched && parsed.test && !serverIssues.length && <div className="validation-block validation-success"><Check size={16} aria-hidden="true" /><span>Format looks good. {parsed.test.questions.length} questions · {parsed.test.duration_minutes} minutes</span></div>}
+          {touched && parsed.test && !storageIssues.length && <div className="validation-block validation-success"><Check size={16} aria-hidden="true" /><span>Format looks good. {parsed.test.questions.length} questions · {parsed.test.duration_minutes} minutes</span></div>}
 
           <div className="import-actions"><button className="btn btn-primary" type="submit" disabled={!parsed.test || saving || saved}>{saving ? "Saving test…" : "Save test"}</button><Link className="btn btn-quiet" to="/dashboard">Cancel</Link><span className="import-security-note">Your JSON is checked again before it’s stored.</span></div>
         </form>

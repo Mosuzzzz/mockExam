@@ -5,8 +5,6 @@ import { resolve } from "node:path";
 const reviewDir = resolve(process.cwd(), ".impeccable/review");
 
 async function openWorkspace(page: import("@playwright/test").Page) {
-  await page.route("**/api/tests", (route) => route.fulfill({ json: [] }));
-  await page.route("**/api/history", (route) => route.fulfill({ json: [] }));
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your practice workspace" })).toBeVisible();
   await expect(page.getByText("Your first test is one import away.")).toBeVisible();
