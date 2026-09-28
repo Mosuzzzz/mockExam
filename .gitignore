@@ -13,5 +13,4 @@ test-results/
 .impeccable/review/
 .env
 .env.*
-!.env.example
 .DS_Store

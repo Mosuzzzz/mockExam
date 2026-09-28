@@ -99,7 +99,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE).
 
 ```text
 apps/web/                 React, Vite, TypeScript, and browser storage
-apps/api/                 Retained API package; not used by the web app
 packages/shared/          Test and missed-question JSON schemas
 docs/sample-mocktest.json Example test data
 ```
