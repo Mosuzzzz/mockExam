@@ -4,6 +4,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { ExamPage } from "./pages/ExamPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { ImportPage } from "./pages/ImportPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { ResultPage } from "./pages/ResultPage";
 
 function AppRoutes() {
@@ -16,7 +17,7 @@ function AppRoutes() {
         <Route path="/create" element={<ImportPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/result/:attemptId" element={<ResultPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );
