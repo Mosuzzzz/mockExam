@@ -12,35 +12,32 @@ MockTest does not generate questions or send them to an AI service. Create quest
 - Keep attempt history and retake saved tests.
 - Copy or download incorrect and unanswered questions as JSON for further study.
 
-## Web app
+## Try MockTest
+
+Use the deployed app at [mock-exam-web-gamma.vercel.app](https://mock-exam-web-gamma.vercel.app/). You can also clone the project and run your own local copy by following the steps below.
 
 ![MockTest dashboard example](docs/screenshots/dashboard.png)
 
 *Dashboard preview with example test and attempt data.*
 
-After starting the app, open one of these pages:
+In the deployed app, open one of these pages:
 
-- [Dashboard](http://localhost:5173/dashboard)
-- [Import a test](http://localhost:5173/create)
-- [Attempt history](http://localhost:5173/history)
+- [Dashboard](https://mock-exam-web-gamma.vercel.app/dashboard)
+- [Import a test](https://mock-exam-web-gamma.vercel.app/create)
+- [Attempt history](https://mock-exam-web-gamma.vercel.app/history)
 
-## Run locally
+## Run your own local copy
 
-You need [Bun](https://bun.sh/).
-
-Install dependencies:
+You need [Git](https://git-scm.com/) and [Bun](https://bun.sh/). Clone the repository, install its dependencies, and start the app:
 
 ```bash
+git clone https://github.com/Mosuzzzz/mockExam.git
+cd mockExam
 bun install
-```
-
-Start the web app:
-
-```bash
 bun run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Your tests and attempts stay in this browser profile; they do not sync across browsers or devices. Clearing this site’s browser storage deletes them. The app also needs browser storage enabled to save progress.
+Open [http://localhost:5173](http://localhost:5173). Tests and attempts are saved in the browser's local storage for that site, so the deployed app and your local copy have separate data. Data does not sync across browsers or devices. Clearing the site's browser storage deletes its saved data. Browser storage must be enabled to save progress.
 
 Tests from the previous PostgreSQL setup are not transferred automatically. Reimport their source JSON to add them to browser storage.
 
