@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-04T00:00:00Z",
+  "title": "Design System: MockTest",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "displayName": "Practice Green",
+        "canonical": "#24594e",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.07 170)",
+          "oklch(25% 0.07 170)",
+          "oklch(35% 0.07 170)",
+          "oklch(45% 0.07 170)",
+          "oklch(55% 0.07 170)",
+          "oklch(65% 0.07 170)",
+          "oklch(80% 0.07 170)",
+          "oklch(95% 0.07 170)"
+        ]
+      },
+      "primary-hover": {
+        "displayName": "Practice Green Hover",
+        "canonical": "#1b493f",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.07 170)",
+          "oklch(25% 0.07 170)",
+          "oklch(35% 0.07 170)",
+          "oklch(45% 0.07 170)",
+          "oklch(55% 0.07 170)",
+          "oklch(65% 0.07 170)",
+          "oklch(80% 0.07 170)",
+          "oklch(95% 0.07 170)"
+        ]
+      },
+      "paper": {
+        "displayName": "Paper",
+        "canonical": "#f5f5f0",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.008 110)",
+          "oklch(25% 0.008 110)",
+          "oklch(35% 0.008 110)",
+          "oklch(45% 0.008 110)",
+          "oklch(55% 0.008 110)",
+          "oklch(65% 0.008 110)",
+          "oklch(80% 0.008 110)",
+          "oklch(95% 0.008 110)"
+        ]
+      },
+      "surface": {
+        "displayName": "Working Surface",
+        "canonical": "#fffefa",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.008 100)",
+          "oklch(25% 0.008 100)",
+          "oklch(35% 0.008 100)",
+          "oklch(45% 0.008 100)",
+          "oklch(55% 0.008 100)",
+          "oklch(65% 0.008 100)",
+          "oklch(80% 0.008 100)",
+          "oklch(95% 0.008 100)"
+        ]
+      },
+      "ink": {
+        "displayName": "Teal Ink",
+        "canonical": "#19383f",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.04 220)",
+          "oklch(25% 0.04 220)",
+          "oklch(35% 0.04 220)",
+          "oklch(45% 0.04 220)",
+          "oklch(55% 0.04 220)",
+          "oklch(65% 0.04 220)",
+          "oklch(80% 0.04 220)",
+          "oklch(95% 0.04 220)"
+        ]
+      },
+      "muted": {
+        "displayName": "Muted Teal",
+        "canonical": "#566d6e",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.025 200)",
+          "oklch(25% 0.025 200)",
+          "oklch(35% 0.025 200)",
+          "oklch(45% 0.025 200)",
+          "oklch(55% 0.025 200)",
+          "oklch(65% 0.025 200)",
+          "oklch(80% 0.025 200)",
+          "oklch(95% 0.025 200)"
+        ]
+      },
+      "rule": {
+        "displayName": "Fine Rule",
+        "canonical": "#d9dfd8",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.015 140)",
+          "oklch(25% 0.015 140)",
+          "oklch(35% 0.015 140)",
+          "oklch(45% 0.015 140)",
+          "oklch(55% 0.015 140)",
+          "oklch(65% 0.015 140)",
+          "oklch(80% 0.015 140)",
+          "oklch(95% 0.015 140)"
+        ]
+      },
+      "focus": {
+        "displayName": "Focus Amber",
+        "canonical": "#b3772e",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.1 75)",
+          "oklch(25% 0.1 75)",
+          "oklch(35% 0.1 75)",
+          "oklch(45% 0.1 75)",
+          "oklch(55% 0.1 75)",
+          "oklch(65% 0.1 75)",
+          "oklch(80% 0.1 75)",
+          "oklch(95% 0.1 75)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Homepage Display",
+        "purpose": "Homepage headline."
+      },
+      "headline": {
+        "displayName": "Workspace Heading",
+        "purpose": "Workspace page headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Supporting prose."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "button-state",
+        "value": "150ms ease-out",
+        "purpose": "Button background, border, color, and one-pixel hover movement."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1050px"
+      },
+      {
+        "name": "mobile-navigation",
+        "value": "820px"
+      },
+      {
+        "name": "small-screen",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action.",
+      "html": "<button class=\"ds-primary\">Import a test</button>",
+      "css": ".ds-primary{font-family:'DM Sans Variable','DM Sans',sans-serif;font-size:14px;font-weight:620;border-radius:10px;min-height:42px;padding:0 16px;cursor:pointer;border:1px solid transparent;background:var(--green,#24594e);color:var(--surface,#fffefa);transition:background-color 150ms ease-out,transform 150ms ease-out}.ds-primary:hover{background:var(--green-hover,#1b493f);transform:translateY(-1px)}.ds-primary:active{transform:translateY(0)}.ds-primary:focus-visible{outline:3px solid var(--focus,#b3772e);outline-offset:3px}.ds-primary:disabled{opacity:.56;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A supporting action.",
+      "html": "<button class=\"ds-secondary\">My tests</button>",
+      "css": ".ds-secondary{font-family:'DM Sans Variable','DM Sans',sans-serif;font-size:14px;font-weight:620;border-radius:10px;min-height:42px;padding:0 16px;cursor:pointer;border:1px solid var(--rule-dark,#bdcbc3);background:var(--surface,#fffefa);color:var(--ink,#19383f)}.ds-secondary:hover{border-color:#849b8d;background:#f9faf6}.ds-secondary:focus-visible{outline:3px solid var(--focus,#b3772e);outline-offset:3px}.ds-secondary:active{transform:translateY(0)}"
+    },
+    {
+      "name": "JSON Editor",
+      "kind": "input",
+      "description": "Prepared JSON input.",
+      "html": "<textarea class=\"ds-editor\" aria-label=\"MockTest JSON\" placeholder=\"Paste MockTest JSON\"></textarea>",
+      "css": ".ds-editor{width:100%;min-height:160px;padding:17px 16px;border:1px solid var(--rule-dark,#bdcbc3);border-radius:12px;background:var(--surface,#fffefa);color:#25484b;font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace;font-size:12px;line-height:1.65;resize:vertical}.ds-editor:hover{border-color:#719486}.ds-editor:focus-visible{outline:3px solid var(--focus,#b3772e);outline-offset:3px}"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "description": "Workspace route navigation.",
+      "html": "<a class=\"ds-nav\" href=\"/dashboard\" aria-current=\"page\">My tests</a>",
+      "css": ".ds-nav{display:flex;align-items:center;min-height:43px;padding:0 11px;border-radius:9px;color:var(--green,#24594e);background:#e0eae3;font-family:'DM Sans Variable',sans-serif;font-size:13px;font-weight:660;text-decoration:none}.ds-nav:hover{background:#d5e5db}.ds-nav:focus-visible{outline:3px solid var(--focus,#b3772e);outline-offset:3px}"
+    },
+    {
+      "name": "Example Tag",
+      "kind": "chip",
+      "description": "Labels sample content.",
+      "html": "<span class=\"ds-tag\">Example</span>",
+      "css": ".ds-tag{display:inline-block;padding:5px 8px;border:1px solid #a7c5b7;border-radius:7px;color:var(--green,#24594e);background:#e6efeb;font-family:'DM Sans Variable',sans-serif;font-size:10px;font-weight:650}"
+    },
+    {
+      "name": "Working Surface",
+      "kind": "card",
+      "description": "A bordered question work area.",
+      "html": "<section class=\"ds-surface\"><h2>Database Midterm</h2><p>What does a primary key do?</p></section>",
+      "css": ".ds-surface{padding:29px;border:1px solid var(--rule-dark,#bdcbc3);border-radius:13px;background:var(--surface,#fffefa);color:var(--ink,#19383f);font-family:'DM Sans Variable',sans-serif}.ds-surface h2{margin:0 0 20px;font-size:17px;font-weight:560}.ds-surface p{margin:0;font-size:17px;line-height:1.45}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Clear exam desk",
+    "overview": "The user-selected workspace direction is quiet and focused. Paper-like work areas, readable ink hierarchy, restrained green actions, and fine rules give questions room to lead. The existing logo remains the identity asset.",
+    "keyCharacteristics": [
+      "Paper-like backgrounds and flat surfaces.",
+      "Clear question text and compact supporting metadata.",
+      "Green primary actions and visible keyboard focus."
+    ],
+    "rules": [],
+    "dos": [
+      "Do reuse the existing CSS variables and DM Sans typography.",
+      "Do keep questions and primary actions easy to find.",
+      "Do use the existing logo asset.",
+      "Do keep keyboard focus visible."
+    ],
+    "donts": [
+      "Don't add classroom clip art or fake exam stationery.",
+      "Don't fabricate testimonials or student outcomes."
+    ]
+  }
+}

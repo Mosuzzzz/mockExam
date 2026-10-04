@@ -20,7 +20,7 @@ export function WorkspaceLayout() {
   return (
     <div className="workspace-shell">
       <aside className="sidebar" aria-label="Main navigation">
-        <NavLink className="brand-lockup" to="/dashboard">
+        <NavLink className="brand-lockup" to="/">
           <img className="brand-logo" src="/mocktest.png" alt="MockTest" />
         </NavLink>
         <div className="nav-caption">WORKSPACE</div>
