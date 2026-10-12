@@ -235,6 +235,18 @@ export function deleteTest(testId: string) {
   return { deleted: true };
 }
 
+export function exportTest(testId: string): { json: string; filename: string } {
+  const data = readWorkspace();
+  const saved = requireTest(data, testId);
+  const json = `${JSON.stringify(saved.value, null, 2)}\n`;
+  const slug = saved.value.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60) || "mocktest";
+  return { json, filename: `${slug}.json` };
+}
+
 export function startAttempt(testId: string): AttemptView {
   const data = readWorkspace();
   const saved = requireTest(data, testId);

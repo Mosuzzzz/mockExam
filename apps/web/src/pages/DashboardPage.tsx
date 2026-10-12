@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Clock3, FilePlus2, History, Trash2 } from "lucide-react";
+import { ArrowRight, Clock3, Download, FilePlus2, History, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
 import { errorMessage } from "../lib/errors";
-import { deleteTest, listHistory, listTests, startAttempt } from "../lib/storage";
+import { deleteTest, exportTest, listHistory, listTests, startAttempt } from "../lib/storage";
 import { formatDate, formatDuration } from "../lib/format";
 import type { HistoryItem, SavedTest } from "../lib/types";
 
@@ -44,6 +44,22 @@ export function DashboardPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setStartingId("");
+    }
+  };
+
+  const downloadTest = (test: SavedTest) => {
+    try {
+      const { json, filename } = exportTest(test.id);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(errorMessage(reason));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -104,6 +120,7 @@ export function DashboardPage() {
                       <button className="btn btn-secondary" type="button" onClick={() => void startTest(test.id)} disabled={startingId === test.id}>
                         {startingId === test.id ? "Opening…" : test.attemptCount ? "Retake" : "Start test"}<ArrowRight size={16} aria-hidden="true" />
                       </button>
+                      <button className="icon-button" type="button" title={`Export ${test.title} as JSON`} aria-label={`Export ${test.title} as JSON`} onClick={() => downloadTest(test)}><Download size={17} aria-hidden="true" /></button>
                       <button className="icon-button delete-test" type="button" title={`Delete ${test.title}`} aria-label={`Delete ${test.title}`} onClick={() => void removeTest(test)}><Trash2 size={17} aria-hidden="true" /></button>
                     </div>
                   </li>
