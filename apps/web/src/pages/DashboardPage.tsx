@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Clock3, Download, FilePlus2, History, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Clipboard, Clock3, FilePlus2, History, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ErrorNotice, LoadingState } from "../components/Feedback";
 import { errorMessage } from "../lib/errors";
@@ -14,6 +14,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [startingId, setStartingId] = useState("");
+  const [copiedId, setCopiedId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,16 +48,12 @@ export function DashboardPage() {
     }
   };
 
-  const downloadTest = (test: SavedTest) => {
+  const copyTest = async (test: SavedTest) => {
     try {
-      const { json, filename } = exportTest(test.id);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      const { json } = exportTest(test.id);
+      await navigator.clipboard.writeText(json);
+      setCopiedId(test.id);
+      window.setTimeout(() => setCopiedId(""), 2000);
     } catch (reason) {
       setError(errorMessage(reason));
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -120,7 +117,7 @@ export function DashboardPage() {
                       <button className="btn btn-secondary" type="button" onClick={() => void startTest(test.id)} disabled={startingId === test.id}>
                         {startingId === test.id ? "Opening…" : test.attemptCount ? "Retake" : "Start test"}<ArrowRight size={16} aria-hidden="true" />
                       </button>
-                      <button className="icon-button" type="button" title={`Export ${test.title} as JSON`} aria-label={`Export ${test.title} as JSON`} onClick={() => downloadTest(test)}><Download size={17} aria-hidden="true" /></button>
+                      <button className="icon-button" type="button" title={copiedId === test.id ? "Copied!" : `Copy ${test.title} as JSON`} aria-label={`Copy ${test.title} JSON to clipboard`} onClick={() => void copyTest(test)}>{copiedId === test.id ? <Check size={17} aria-hidden="true" /> : <Clipboard size={17} aria-hidden="true" />}</button>
                       <button className="icon-button delete-test" type="button" title={`Delete ${test.title}`} aria-label={`Delete ${test.title}`} onClick={() => void removeTest(test)}><Trash2 size={17} aria-hidden="true" /></button>
                     </div>
                   </li>
